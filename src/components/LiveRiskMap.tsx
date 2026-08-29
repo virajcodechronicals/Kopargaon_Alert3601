@@ -3,6 +3,7 @@ import { calculateFloodTimeline } from "../utils/floodEngine";
 import { HazardType, RiskLevel, RiskPrediction, Shelter } from '../types';
 import { HAZARD_PALETTES } from './HazardPalettes';
 import MapLayer, { MapBaseStyle } from '../MapLayer';
+import { WindyMap } from './WindyMap';
 import { KOPARGAON_LANDMARKS, LocalLandmark } from '../landmarks';
 import { SpeechEngine } from '../utils/speech';
 
@@ -228,22 +229,26 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
 
   return (
     <div className="relative w-full h-full min-h-[600px] overflow-hidden bg-slate-50 select-none">
-      {/* 1. Open-Source MapLibre GL JS + Deck.gl (@deck.gl/mapbox) */}
+      {/* 1. Open-Source MapLibre GL JS + Deck.gl (@deck.gl/mapbox) or Windy Map */}
       <div className="absolute inset-0 z-0">
-        <MapLayer
-          activeHazard={activeHazard}
-          predictions={predictions}
-          shelters={shelters}
-          timeOffset={timeOffset}
-          dischargeRate={dischargeRate}
-          lang={lang}
-          incidents={incidents}
-          onSelectZone={onSelectZone}
-          onSelectLandmark={lm => setSelectedLandmark(lm)}
-          selectedLayerFilter={selectedLayerFilter}
-          userLocation={userLocation}
-          mapBaseStyle={mapBaseStyle}
-        />
+        {mapBaseStyle === 'windy' ? (
+          <WindyMap lang={lang} className="absolute inset-0 z-10" />
+        ) : (
+          <MapLayer
+            activeHazard={activeHazard}
+            predictions={predictions}
+            shelters={shelters}
+            timeOffset={timeOffset}
+            dischargeRate={dischargeRate}
+            lang={lang}
+            incidents={incidents}
+            onSelectZone={onSelectZone}
+            onSelectLandmark={lm => setSelectedLandmark(lm)}
+            selectedLayerFilter={selectedLayerFilter}
+            userLocation={userLocation}
+            mapBaseStyle={mapBaseStyle}
+          />
+        )}
       </div>
 
       {/* 2. Top Controls & Hazard FilterChips */}
@@ -352,8 +357,8 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
             ))}
           </div>
 
-          {/* Base Map Style Switcher (Streets / Satellite / Terrain) */}
-          <div className="flex items-center gap-1 p-1 bg-slate-900/85 text-white rounded-xl shadow-md backdrop-blur-md">
+          {/* Base Map Style Switcher (Streets / Satellite / Terrain / Windy Weather) */}
+          <div className="flex items-center gap-1 p-1 bg-slate-900/85 text-white rounded-xl shadow-md backdrop-blur-md overflow-x-auto no-scrollbar">
             <span className="text-[10px] uppercase font-bold text-slate-400 px-2 flex items-center gap-1">
               <span className="material-symbols-outlined text-xs">map</span>
               {lang === 'mr' ? 'दृश्य:' : 'Map:'}
@@ -361,7 +366,8 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
             {[
               { id: 'streets', label_en: 'Streets', label_mr: 'नकाशा', icon: 'map' },
               { id: 'satellite', label_en: 'Satellite', label_mr: 'उपग्रह', icon: 'satellite_alt' },
-              { id: 'terrain', label_en: 'Terrain', label_mr: 'भूरचना', icon: 'terrain' }
+              { id: 'terrain', label_en: 'Terrain', label_mr: 'भूरचना', icon: 'terrain' },
+              { id: 'windy', label_en: 'Windy Weather', label_mr: 'विंडी हवामान', icon: 'cyclone' }
             ].map(styleOpt => (
               <button
                 key={styleOpt.id}
@@ -371,10 +377,12 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
                   mapBaseStyle === styleOpt.id
                     ? styleOpt.id === 'satellite'
                       ? 'bg-emerald-500 text-white shadow-sm font-bold'
+                      : styleOpt.id === 'windy'
+                      ? 'bg-cyan-600 text-white shadow-sm font-bold ring-1 ring-cyan-300'
                       : 'bg-indigo-600 text-white shadow-sm font-bold'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800'
                 }`}
-                title={styleOpt.id === 'satellite' ? 'High-Resolution Satellite Imagery' : undefined}
+                title={styleOpt.id === 'windy' ? 'Interactive Windy Weather Map' : styleOpt.id === 'satellite' ? 'High-Resolution Satellite Imagery' : undefined}
               >
                 <span className="material-symbols-outlined text-xs">{styleOpt.icon}</span>
                 <span>{lang === 'mr' ? styleOpt.label_mr : styleOpt.label_en}</span>
@@ -389,6 +397,16 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
             <span className="flex items-center gap-1.5 font-bold">
               <span className="material-symbols-outlined text-sm text-emerald-400 animate-pulse">satellite_alt</span>
               {lang === 'mr' ? 'थेट उपग्रह छायाचित्र दृश्य सक्रिय (ESRI World Imagery)' : 'High-Res Earth Satellite View Active (ESRI World Imagery)'}
+            </span>
+          </div>
+        )}
+
+        {/* Windy Weather Active Tag Banner */}
+        {mapBaseStyle === 'windy' && (
+          <div className="pointer-events-auto flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-slate-950/90 border border-cyan-500/50 text-cyan-300 text-[11px] shadow-lg backdrop-blur-md animate-fadeIn max-w-fit">
+            <span className="flex items-center gap-1.5 font-bold">
+              <span className="material-symbols-outlined text-sm text-cyan-400 animate-spin-slow">cyclone</span>
+              {lang === 'mr' ? 'थेट विंडी हवामान व वादळ प्रवाह नकाशा सक्रिय' : 'Live Windy Weather Map Active (Wind, Rain & Flood Radar)'}
             </span>
           </div>
         )}
@@ -446,11 +464,20 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
           <div 
             className="pointer-events-auto p-3.5 sm:p-4 rounded-2xl bg-white/95 border shadow-xl backdrop-blur-md transition-all space-y-2.5"
             style={{
-              borderColor: palette.baseColor
+              borderColor: palette.baseColor,
+              paddingLeft: '14px',
+              marginLeft: '0px',
+              marginTop: '0px',
+              marginBottom: '57px',
+              width: '574.994px',
+              height: '67.7983px'
             }}
           >
             {/* Rule 1 & Rule 3: Color + Icon + Words together; Anchored to places people know */}
-            <div className="flex items-start justify-between gap-2.5">
+            <div 
+              className="flex items-start justify-between gap-2.5"
+              style={{ marginBottom: '-6px' }}
+            >
               <div className="flex items-start gap-2.5">
                 <div 
                   className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow"
@@ -468,7 +495,13 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
                     >
                       {lang === 'mr' ? palette.marathiName : palette.name}
                     </span>
-                    <span className="text-[11px] font-bold text-slate-500">
+                    <span 
+                      className="text-[11px] font-bold text-slate-500"
+                      style={{
+                        fontSize: '11px',
+                        lineHeight: '14px'
+                      }}
+                    >
                       {timeOffset === 0 ? (lang === 'mr' ? 'थेट परिस्थिती' : 'LIVE NOW') : `+${timeOffset}h FORECAST`}
                     </span>
                   </div>

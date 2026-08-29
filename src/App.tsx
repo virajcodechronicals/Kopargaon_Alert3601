@@ -13,6 +13,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { SOSBeaconModal } from './components/SOSBeaconModal';
 import { ConcernedAuthoritiesDirectory } from './components/ConcernedAuthoritiesDirectory';
 import { PersistentEmergencyBanner } from './components/PersistentEmergencyBanner';
+import { EscalationPackageModal } from './components/EscalationPackageModal';
 import { HazardType, RiskPrediction, Alert, Shelter, EmergencyContact, AuthorityContact } from './types';
 import { HAZARD_PALETTES, getHazardTonalStyle } from './components/HazardPalettes';
 
@@ -33,6 +34,7 @@ export default function App() {
   const [showAIAssistant, setShowAIAssistant] = useState<boolean>(false);
   const [showReportModal, setShowReportModal] = useState<boolean>(false);
   const [showSOSModal, setShowSOSModal] = useState<boolean>(false);
+  const [showEscalationModal, setShowEscalationModal] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => !localStorage.getItem('onboarding_seen'));
   const [timeOffsetHours, setTimeOffsetHours] = useState<number>(0);
   const [lang, setLang] = useState<'en' | 'mr'>('en');
@@ -194,7 +196,13 @@ export default function App() {
           </div>
         </div>
 
-        <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
+        <div 
+          className="pointer-events-auto flex items-center gap-1.5 sm:gap-2"
+          style={{
+            marginLeft: '0px',
+            marginRight: '48px'
+          }}
+        >
           {/* Ambient Trust Signal Badge — Live real-time elapsed ticker */}
           <div
             id="ambient-trust-signal-badge"
@@ -470,6 +478,7 @@ export default function App() {
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => setShowReportModal(true)}
+          style={{ width: '142.332px' }}
           className="pointer-events-auto px-3.5 py-2.5 rounded-2xl font-bold text-xs tracking-wide text-rose-700 bg-white/95 hover:bg-rose-50 border border-rose-200 shadow-md backdrop-blur-md flex items-center gap-2 transition-all"
         >
           <span className="material-symbols-outlined material-symbols-filled text-lg text-rose-600">
@@ -489,6 +498,26 @@ export default function App() {
         >
           <span className="material-symbols-outlined material-symbols-filled text-xl text-sky-600">
             smart_toy
+          </span>
+        </motion.button>
+
+        {/* Escalation & Action Pack FAB */}
+        <motion.button
+          id="escalation-fab"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowEscalationModal(true)}
+          style={{
+            marginTop: '0px',
+            paddingLeft: '0px',
+            marginLeft: '0px',
+            marginBottom: '-51px'
+          }}
+          className="pointer-events-auto w-11 h-11 rounded-2xl bg-white/95 hover:bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-md backdrop-blur-md flex items-center justify-center transition-all"
+          title={lang === 'mr' ? 'संकटकालीन अहवाल व कृती पॅकेज' : 'Situational Report & Action Pack'}
+        >
+          <span className="material-symbols-outlined material-symbols-filled text-xl text-indigo-600">
+            description
           </span>
         </motion.button>
       </div>
@@ -532,6 +561,16 @@ export default function App() {
           <SOSBeaconModal
             lang={lang}
             onClose={() => setShowSOSModal(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Escalation Action Pack Modal */}
+      <AnimatePresence>
+        {showEscalationModal && (
+          <EscalationPackageModal
+            lang={lang}
+            onClose={() => setShowEscalationModal(false)}
           />
         )}
       </AnimatePresence>

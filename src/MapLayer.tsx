@@ -267,7 +267,7 @@ export const TERRAIN_STYLE: maplibregl.StyleSpecification = {
   ]
 };
 
-export type MapBaseStyle = 'streets' | 'satellite' | 'terrain';
+export type MapBaseStyle = 'streets' | 'satellite' | 'terrain' | 'windy';
 
 interface MapLayerProps {
   activeHazard: HazardType;

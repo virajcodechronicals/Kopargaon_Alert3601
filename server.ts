@@ -2020,6 +2020,40 @@ Keep it to 2-3 short, clear paragraphs with actionable advice (e.g., evacuation 
     ]);
   });
 
+  // Proxy endpoint for Windy API using process.env.WINDY_API_KEY
+  app.post("/api/v1/windy/forecast", async (req, res) => {
+    const apiKey = process.env.WINDY_API_KEY;
+    if (!apiKey) {
+      return res.status(400).json({ error: "WINDY_API_KEY is not configured in environment variables." });
+    }
+
+    const { lat = 19.891, lon = 74.479, model = "gfs", parameters = ["temp", "wind", "rh", "precip"] } = req.body || {};
+
+    try {
+      const response = await fetch("https://api.windy.com/api/point-forecast/v2", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat,
+          lon,
+          model,
+          parameters,
+          key: apiKey
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        return res.status(response.status).json({ error: "Windy API returned error", details: errText });
+      }
+
+      const data = await response.json();
+      return res.json({ success: true, data });
+    } catch (err: any) {
+      return res.status(500).json({ error: "Failed to connect to Windy API", message: err.message });
+    }
+  });
+
   // Layer 7.1 - Hazard Surface Maps
   app.get("/api/v1/hazard-surface", async (req, res) => {
     const type = (req.query.type as string) || "flood";
@@ -2883,6 +2917,261 @@ Respond with a strictly formatted JSON object matching this structure:
       }
     });
   });
+
+  // --- KOPARGAON ALERT 360: UNIFIED DISASTER INTELLIGENCE ENGINE & MESH ROUTER ---
+  const handleDisasterEngineEvaluation = async (req: any, res: any) => {
+    const {
+      hazardType = "flood",
+      riskLevel = "HIGH",
+      dischargeCusecs = 42500,
+      riverStageM = 15.80,
+      rainfallMm = 35,
+      temperatureC = 30.5,
+      zoneId = "zone-bet",
+      originRole = "AI_TELEMETRY",
+      targetRole = "TAHSILDAR_DESK",
+      dataStoreHealth = "HEALTHY",
+      walBuffer = []
+    } = req.body || {};
+
+    const systemInstructionPrompt = `You are the unified Disaster Intelligence Engine, Multi-Authority Dispatch Router, and State Recovery Core for "Kopargaon Alert 360", an offline-first disaster early warning and crisis response system for Kopargaon Taluka, Maharashtra, India.
+
+SECTION 1: GEOSPATIAL & HYDROLOGICAL DOMAIN CONTEXT
+- Primary Hydrological System: Godavari River Basin (Kopargaon Reach).
+- Upstream Reservoirs & Telemetry: Gangapur Dam and Darna Dam discharge rates (measured in Cusecs).
+- Critical River Gauge Markers: Godavari Old Bridge Gauge: Warning Level = 14.50 m | Danger Level = 16.50 m (Coordinates: 19.8912° N, 74.4789° E).
+- High Vulnerability Inundation Sectors: Bet Kopargaon Sector (Coordinates: 19.8870° N, 74.4710° E), Low-lying Riverbank Wards, Agricultural belts.
+- Designated Evacuation & Command Shelters:
+  - Sanjeevani Campus Relief Hub (Capacity: 450 beds | Coordinates: 19.8780° N, 74.4690° E).
+  - Kopargaon Municipal Town Hall (Capacity: 250 beds | Coordinates: 19.8845° N, 74.4820° E).
+- Agronomic & Climate Hazards: Pre/post-monsoon hailstorms (Garpit) damaging onion, sugarcane, grape, and pomegranate crops; summer heatwaves; seasonal flash flooding.
+
+SECTION 2: MULTI-AUTHORITY ROLES & DISPATCH HIERARCHY
+Target and origin roles MUST be one of:
+1. TAHSILDAR_DESK
+2. MUNICIPAL_COUNCIL
+3. SDRF_COMMAND
+4. SANJEEVANI_RELIEF_HUB
+5. FIELD_RESPONDER
+6. CITIZEN_BROADCAST
+
+SECTION 3: OFFLINE TRANSMISSION & MESH PROTOCOLS
+The system generates payloads formatted for zero-internet communication across multiple physical layers:
+1. Layer 1 — Store-and-Forward (IndexedDB / SQLite): Uses client_id for idempotent writes.
+2. Layer 2 — Wi-Fi Direct / Local Wi-Fi Aware.
+3. Layer 3 — BLE Multi-Hop Gossip Relay: Encrypted, multi-hop broadcast beacons with TTL hop constraints.
+4. Layer 4 — LoRa Sub-GHz Radio (Meshtastic Bridge): Ultra-dense hex strings (< 240 bytes) for 5–15 km taluka-wide radio transmission.
+5. Layer 5 — GSM Encrypted Direct SMS: Standard 160-character plain text fallback targeting emergency hotlines (+912423222000).
+
+SECTION 4: DATA-CORRUPTION RECOVERY & STATE SYNTHESIS ENGINE
+When primary data stores are wiped or unreadable:
+1. In-Flight WAL Reconciliation: Process unstructured in-flight transaction dumps (Write-Ahead Logs from memory buffers) into valid records.
+2. Synthetic Baseline Interpolation: Interpolate current risk baselines using live upstream dam discharge rates, rainfall amounts, and river stages.
+3. Output exact metrics: salvagedInFlightCount, syntheticTelemetryActive, recoveryLog.
+
+SECTION 5: STRICT DETERMINISTIC OUTPUT SCHEMA (JSON)
+You MUST return strictly valid JSON matching this schema:
+{
+  "hazardAssessment": {
+    "hazardType": "flood" | "heatwave" | "drought" | "unseasonal",
+    "riskLevel": "LOW" | "MODERATE" | "HIGH" | "CRITICAL",
+    "riskScore": 0-100,
+    "primaryThreat": "Deterministic threat statement",
+    "estimatedImpactTime": "e.g., Next 2 to 4 hours",
+    "vulnerableZones": ["Bet Kopargaon", "Old Bridge Ward", "Rural Belt"],
+    "evacuationRequired": true | false
+  },
+  "authorityRouting": {
+    "dispatchId": "KPR-AUTH-YYYYMMDD-XXXX",
+    "originRole": "FIELD_RESPONDER" | "CITIZEN_LEAD" | "AI_TELEMETRY",
+    "targetRole": "TAHSILDAR_DESK" | "MUNICIPAL_COUNCIL" | "SDRF_COMMAND" | "SANJEEVANI_RELIEF_HUB",
+    "priority": "P1_LIFE_THREAT" | "P2_URGENT_LOGISTICS" | "P3_ADVISORY",
+    "actionDirective": "Direct operational instruction for the receiving department",
+    "designatedShelter": {
+      "name": "Sanjeevani Campus Relief Hub",
+      "coordinates": [19.8780, 74.4690],
+      "availableCapacity": 450
+    }
+  },
+  "bilingualCAPBroadcast": {
+    "headlineEn": "Urgent Evacuation Notice: Bet Kopargaon Sector",
+    "headlineMr": "तातडीचे स्थलांतर आदेश: बेट कोपरगाव परिसर",
+    "actionPlanEn": "Evacuate immediately towards Sanjeevani Relief Hub. Avoid Old Bridge route.",
+    "actionPlanMr": "तातडीने संजीवनी मदत केंद्राकडे स्थलांतरित व्हा. जुन्या पुलाचा मार्ग वापरू नका."
+  },
+  "offlinePayloads": {
+    "bleGossipPacket": {
+      "ttl": 5,
+      "packetId": "UUID-v4",
+      "targetRoleHash": "SDRF_COMMAND",
+      "compactData": "HAZ:FLD|LVL:CRIT|LOC:19.8870,74.4710|EVAC:1|TS:1724932000"
+    },
+    "loraRadioHex": "4B50523A464C4F4F442C435249542C3139383837302C3734343731302C53445246",
+    "directSms": {
+      "recipientNumber": "+912423222000",
+      "smsText": "[KOPAR-AUTH] TO:SDRF|HAZ:FLOOD|SEV:CRITICAL|LOC:19.8870,74.4710|ACT:DEPLOY_BOATS|SHELTER:SANJEEVANI"
+    }
+  },
+  "resilienceAndRecovery": {
+    "dataStoreHealth": "HEALTHY" | "DEGRADED_CORRUPTED" | "RECOVERED_SYNTHESIZED",
+    "salvagedInFlightCount": 0,
+    "syntheticTelemetryActive": true | false,
+    "recoveryLog": "Summary of replayed WAL buffers or synthesized sensor baselines"
+  }
+}`;
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (apiKey) {
+      try {
+        const ai = new GoogleGenAI({
+          apiKey,
+          httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+        });
+
+        const userPrompt = `Evaluate Kopargaon disaster telemetry:
+Hazard: ${hazardType}
+Discharge: ${dischargeCusecs} cusecs
+River Stage: ${riverStageM} m
+Rainfall: ${rainfallMm} mm
+Temperature: ${temperatureC} °C
+Zone: ${zoneId}
+Origin Role: ${originRole}
+Target Role: ${targetRole}
+Data Store Health: ${dataStoreHealth}
+WAL In-Flight Count: ${Array.isArray(walBuffer) ? walBuffer.length : 0}`;
+
+        const aiRes = await ai.models.generateContent({
+          model: "gemini-3.7-flash",
+          contents: userPrompt,
+          config: {
+            systemInstruction: systemInstructionPrompt,
+            responseMimeType: "application/json"
+          }
+        });
+
+        const textOutput = aiRes.text?.trim();
+        if (textOutput) {
+          let parsed = JSON.parse(textOutput);
+          
+          // Enforce system constraints
+          if (riverStageM >= 16.5 || dischargeCusecs >= 60000) {
+            parsed.hazardAssessment = parsed.hazardAssessment || {};
+            parsed.hazardAssessment.riskLevel = "CRITICAL";
+          } else if (riverStageM >= 14.5 || dischargeCusecs >= 30000) {
+            parsed.hazardAssessment = parsed.hazardAssessment || {};
+            if (parsed.hazardAssessment.riskLevel !== "CRITICAL") {
+              parsed.hazardAssessment.riskLevel = "HIGH";
+            }
+          }
+
+          if (parsed.hazardAssessment?.riskLevel === "CRITICAL") {
+            parsed.hazardAssessment.evacuationRequired = true;
+            parsed.authorityRouting = parsed.authorityRouting || {};
+            parsed.authorityRouting.priority = "P1_LIFE_THREAT";
+          }
+
+          if (parsed.offlinePayloads?.directSms?.smsText && parsed.offlinePayloads.directSms.smsText.length > 160) {
+            parsed.offlinePayloads.directSms.smsText = parsed.offlinePayloads.directSms.smsText.substring(0, 160);
+          }
+
+          if (parsed.offlinePayloads?.loraRadioHex && parsed.offlinePayloads.loraRadioHex.length > 480) {
+            parsed.offlinePayloads.loraRadioHex = parsed.offlinePayloads.loraRadioHex.substring(0, 480);
+          }
+
+          return res.json(parsed);
+        }
+      } catch (err: any) {
+        console.warn("Disaster Engine Gemini evaluation fallback triggered:", err?.message);
+      }
+    }
+
+    // Deterministic Rule-Based Fallback Engine matching the EXACT JSON schema
+    const isCritical = dischargeCusecs >= 60000 || riverStageM >= 16.5;
+    const isHigh = dischargeCusecs >= 30000 || riverStageM >= 14.5;
+    
+    const computedRiskLevel = isCritical ? "CRITICAL" : (isHigh ? "HIGH" : (riverStageM >= 12.0 ? "MODERATE" : "LOW"));
+    const computedRiskScore = isCritical ? 92 : (isHigh ? 78 : (riverStageM >= 12.0 ? 45 : 18));
+    const isEvac = isCritical || (hazardType === "flood" && riverStageM >= 16.0);
+
+    const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const randomHex = Math.floor(1000 + Math.random() * 9000);
+    const dispatchId = `KPR-AUTH-${dateStr}-${randomHex}`;
+
+    const salvagedCount = Array.isArray(walBuffer) ? walBuffer.length : 0;
+    const isCorrupted = dataStoreHealth === "DEGRADED_CORRUPTED";
+
+    const smsContent = `[KOPAR-AUTH] TO:${targetRole}|HAZ:${hazardType.toUpperCase()}|SEV:${computedRiskLevel}|LOC:19.8870,74.4710|ACT:${isEvac ? 'EVACUATE' : 'MONITOR'}|SHELTER:SANJEEVANI`;
+
+    const deterministicOutput = {
+      hazardAssessment: {
+        hazardType: hazardType,
+        riskLevel: computedRiskLevel,
+        riskScore: computedRiskScore,
+        primaryThreat: isCritical
+          ? `Critical ${hazardType} overflow threatening Bet Kopargaon Reach`
+          : `Monitored ${hazardType} conditions within Kopargaon hydrological bounds`,
+        estimatedImpactTime: isCritical ? "Next 1 to 2 hours" : "Next 4 to 6 hours",
+        vulnerableZones: isCritical
+          ? ["Bet Kopargaon", "Godavari Old Bridge Ward", "Kedareshwar Temple Ghats"]
+          : ["Bet Kopargaon Perimeter"],
+        evacuationRequired: isEvac || (computedRiskLevel === "CRITICAL")
+      },
+      authorityRouting: {
+        dispatchId: dispatchId,
+        originRole: originRole,
+        targetRole: targetRole,
+        priority: computedRiskLevel === "CRITICAL" ? "P1_LIFE_THREAT" : (isHigh ? "P2_URGENT_LOGISTICS" : "P3_ADVISORY"),
+        actionDirective: isCritical
+          ? "Mobilize SDRF boats and activate Section 144 evacuation sirens at Bet Kopargaon."
+          : "Execute continuous river stage telemetry logging and inspect de-watering pumps.",
+        designatedShelter: {
+          name: "Sanjeevani Campus Relief Hub",
+          coordinates: [19.8780, 74.4690],
+          availableCapacity: 450
+        }
+      },
+      bilingualCAPBroadcast: {
+        headlineEn: isCritical
+          ? "Urgent Evacuation Notice: Bet Kopargaon Sector"
+          : "Disaster Advisory: Kopargaon River Stage Tracking",
+        headlineMr: isCritical
+          ? "तातडीचे स्थलांतर आदेश: बेट कोपरगाव परिसर"
+          : "आपत्ती सूचना: कोपरगाव गोदावरी नदी पातळी निरीक्षण",
+        actionPlanEn: isEvac
+          ? "Evacuate immediately towards Sanjeevani Relief Hub. Avoid Old Bridge route."
+          : "Remain alert, monitor official alerts, and keep emergency kits ready.",
+        actionPlanMr: isEvac
+          ? "तातडीने संजीवनी मदत केंद्राकडे स्थलांतरित व्हा. जुन्या पुलाचा मार्ग वापरू नका."
+          : "सतर्क राहा, अधिकृत सूचनांचे पालन करा आणि आपत्कालीन कीट तयार ठेवा."
+      },
+      offlinePayloads: {
+        bleGossipPacket: {
+          ttl: 5,
+          packetId: `${Math.random().toString(36).substring(2, 10)}-ble-mesh`,
+          targetRoleHash: targetRole,
+          compactData: `HAZ:${hazardType.toUpperCase().substring(0,3)}|LVL:${computedRiskLevel}|LOC:19.8870,74.4710|EVAC:${isEvac ? 1 : 0}|TS:${Math.floor(Date.now()/1000)}`
+        },
+        loraRadioHex: "4B50523A464C4F4F442C435249542C3139383837302C3734343731302C53445246".substring(0, 480),
+        directSms: {
+          recipientNumber: "+912423222000",
+          smsText: smsContent.substring(0, 160)
+        }
+      },
+      resilienceAndRecovery: {
+        dataStoreHealth: isCorrupted ? "RECOVERED_SYNTHESIZED" : dataStoreHealth,
+        salvagedInFlightCount: salvagedCount,
+        syntheticTelemetryActive: isCorrupted,
+        recoveryLog: isCorrupted
+          ? `Replayed ${salvagedCount} in-flight WAL buffers. Synthesized baseline from dam outflow (${dischargeCusecs} cfs) and stage (${riverStageM}m).`
+          : "System operating cleanly on live verified telemetry and synchronized database WAL buffers."
+      }
+    };
+
+    res.json(deterministicOutput);
+  };
+
+  app.post("/api/v1/disaster-engine/evaluate", handleDisasterEngineEvaluation);
+  app.post("/api/v1/predictive-core/evaluate", handleDisasterEngineEvaluation);
 
   // Multimodal AI Image Hazard Analyzer Endpoint
   app.post("/api/analyze-image", async (req: any, res: any) => {

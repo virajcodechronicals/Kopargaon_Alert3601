@@ -119,7 +119,14 @@ export const PersistentEmergencyBanner: React.FC<PersistentEmergencyBannerProps>
   };
 
   return (
-    <div className="fixed top-28 inset-x-3 sm:inset-x-6 z-40 max-w-4xl mx-auto pointer-events-none">
+    <div 
+      className="fixed top-28 inset-x-3 sm:inset-x-6 z-40 max-w-4xl mx-auto pointer-events-none"
+      style={{
+        width: '300px',
+        paddingLeft: '3px',
+        marginLeft: '450px'
+      }}
+    >
       <AnimatePresence mode="wait">
         {isMinimized ? (
           /* Minimized Floating Alert Indicator Pill (Permanent until next state) */
@@ -129,6 +136,11 @@ export const PersistentEmergencyBanner: React.FC<PersistentEmergencyBannerProps>
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             className="flex justify-center pointer-events-auto"
+            style={{
+              width: '300px',
+              paddingLeft: '3px',
+              marginLeft: '450px'
+            }}
           >
             <button
               id="reopen-emergency-alert-pill"
@@ -136,7 +148,14 @@ export const PersistentEmergencyBanner: React.FC<PersistentEmergencyBannerProps>
                 setIsMinimized(false);
                 setHasNewUnseen(false);
               }}
-              className={`px-3.5 py-2 rounded-2xl shadow-xl backdrop-blur-md border flex items-center gap-2 text-xs font-bold transition-all group ${
+              style={{
+                paddingLeft: '7px',
+                marginLeft: '129px',
+                marginTop: '11px',
+                width: '202.892px',
+                height: '37.8182px'
+              }}
+              className={`py-2 rounded-2xl shadow-xl backdrop-blur-md border flex items-center gap-2 text-xs font-bold transition-all group ${
                 isCritical
                   ? 'bg-rose-950/90 text-rose-100 border-rose-500 hover:bg-rose-900'
                   : isHigh
@@ -157,13 +176,24 @@ export const PersistentEmergencyBanner: React.FC<PersistentEmergencyBannerProps>
                 {palette.symbol}
               </span>
 
-              <span className="font-bold">
+              <span 
+                className="font-bold"
+                style={{ fontSize: '9px' }}
+              >
                 {lang === 'mr' 
                   ? `सक्रिय इशारा (${validAlerts.length})` 
                   : `Active Alert (${validAlerts.length})`}
               </span>
 
-              <span className="text-[10px] font-mono opacity-80 group-hover:opacity-100 underline decoration-dotted ml-1">
+              <span 
+                className="text-[10px] font-mono opacity-80 group-hover:opacity-100 underline decoration-dotted ml-1"
+                style={{
+                  marginRight: '0px',
+                  marginBottom: '0px',
+                  marginLeft: '-2px',
+                  paddingLeft: '-3px'
+                }}
+              >
                 {lang === 'mr' ? 'उघडा' : 'Expand'}
               </span>
             </button>
