@@ -3080,7 +3080,7 @@ For all telemetry assessments, hazard predictions, offline dispatches, recovery 
 2. Character Limit Enforcement: Plain text SMS bodies must not exceed 160 characters; LoRa radio hex payloads must remain under 240 bytes.
 3. Automatic Escalation: Whenever riskLevel is CRITICAL, priority must automatically elevate to P1_LIFE_THREAT and evacuationRequired must be set to true.
 4. Tamper Quarantine: If signatureValid is false, suppress broadcast propagation immediately.
-5. Voice Readout Preparation: Ensure headlineMr and actionPlanMr are written in clean phonetic Marathi suitable for the Web Speech synthesis engine (mr-IN).`;
+5. Voice Readout Preparation: Ensure headlineMr, actionPlanMr, and voiceReadoutMr are written in clean phonetic Marathi suitable for the Web Speech synthesis engine (mr-IN).`;
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (apiKey) {
