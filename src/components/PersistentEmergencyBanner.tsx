@@ -150,10 +150,11 @@ export const PersistentEmergencyBanner: React.FC<PersistentEmergencyBannerProps>
               }}
               style={{
                 paddingLeft: '7px',
-                marginLeft: '129px',
-                marginTop: '11px',
+                marginLeft: '198px',
+                marginTop: '26px',
+                marginRight: '-76px',
                 width: '202.892px',
-                height: '37.8182px'
+                height: '32.8125px'
               }}
               className={`py-2 rounded-2xl shadow-xl backdrop-blur-md border flex items-center gap-2 text-xs font-bold transition-all group ${
                 isCritical

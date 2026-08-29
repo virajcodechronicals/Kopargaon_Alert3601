@@ -371,7 +371,7 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
           {/* Base Map Style Switcher (Streets / Satellite / Terrain / Windy Weather) */}
           <div 
             className="flex items-center gap-1 p-1 bg-slate-900/85 text-white rounded-xl shadow-md backdrop-blur-md overflow-x-auto no-scrollbar"
-            style={{ marginTop: '312px', height: '31.619300000000003px' }}
+            style={{ marginLeft: '0px', marginTop: '2px', height: '31.619300000000003px' }}
           >
             <span className="text-[10px] uppercase font-bold text-slate-400 px-2 flex items-center gap-1">
               <span className="material-symbols-outlined text-xs">map</span>
