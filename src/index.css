@@ -130,3 +130,8 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Fix unpressable section as requested via Focus Mode */
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
+  pointer-events: none !important;
+}
