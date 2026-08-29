@@ -5,11 +5,13 @@ import { HazardType, RiskLevel, Shelter } from '../types';
 import { HAZARD_PALETTES, getHazardTonalStyle } from './HazardPalettes';
 import { store } from '../store';
 import { safeFetchJson } from '../utils/api';
+import { AuthoritiesManagementTab } from './AuthoritiesManagementTab';
 
-type AuthorityTab = 'overview' | 'flood' | 'drought' | 'heatwave' | 'unseasonal' | 'incidents' | 'alerts' | 'analytics';
+type AuthorityTab = 'overview' | 'authorities' | 'flood' | 'drought' | 'heatwave' | 'unseasonal' | 'incidents' | 'alerts' | 'analytics';
 
 const TABS: { id: AuthorityTab; label: string; icon: string }[] = [
   { id: 'overview', label: 'Overview', icon: 'dashboard' },
+  { id: 'authorities', label: 'Authorities & Dispatch', icon: 'shield_person' },
   { id: 'flood', label: 'Flood', icon: 'water_drop' },
   { id: 'drought', label: 'Drought', icon: 'grass' },
   { id: 'heatwave', label: 'Heatwave', icon: 'thermostat' },
@@ -513,21 +515,30 @@ export const AuthorityDashboard = () => {
               </div>
             </div>
           )}
+          {/* 6. Authorities & Disaster Dispatch Management Tab */}
+          {activeTab === 'authorities' && (
+            <AuthoritiesManagementTab
+              onShowToast={showToast}
+              currentUser={user}
+            />
+          )}
         </div>
       </main>
 
       {/* Adaptive NavigationBar for Mobile Screens */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 px-2 py-1 flex justify-around shadow-lg">
-        {TABS.slice(0, 5).map(t => (
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 px-2 py-1 flex items-center overflow-x-auto gap-1 shadow-lg">
+        {TABS.map(t => (
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
-            className={`p-2 flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-              activeTab === t.id ? 'text-sky-600' : 'text-slate-500'
+            className={`p-2 min-w-[64px] flex flex-col items-center gap-0.5 text-[10px] font-bold shrink-0 transition-colors ${
+              activeTab === t.id ? 'text-sky-600 font-extrabold' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <span className="material-symbols-outlined text-xl">{t.icon}</span>
-            <span>{t.label}</span>
+            <span className={`material-symbols-outlined text-lg ${activeTab === t.id ? 'material-symbols-filled' : ''}`}>
+              {t.icon}
+            </span>
+            <span className="truncate max-w-[60px]">{t.label.split(' ')[0]}</span>
           </button>
         ))}
       </div>

@@ -476,7 +476,7 @@ export default function MapLayer({
              level = currentPred.risk_level;
           } else {
             const pred = predictions.find(p => p.zone_id === zoneId && p.hazard_type === activeHazard);
-            level = pred ? pred.risk_level : (zoneId === 'zone-bet' && activeHazard === 'flood' ? 'CRITICAL' : 'LOW');
+            level = pred ? pred.risk_level : 'LOW';
           }
           
           // Time offset increases intensity

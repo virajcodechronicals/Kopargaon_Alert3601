@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { store } from './store';
 import { useAuth } from './components/Auth';
 import { AuthorityDashboard } from './components/AuthorityDashboard';
+import { ConcernedAuthorityPortal } from './components/ConcernedAuthorityPortal';
 import { LiveRiskMap } from './components/LiveRiskMap';
 import { ZoneBottomSheet } from './components/ZoneBottomSheet';
 import { AIAssistantSheet } from './components/AIAssistantSheet';
@@ -10,13 +11,17 @@ import { AlertsTimeline } from './components/AlertsTimeline';
 import { IncidentReportModal } from './components/IncidentReportModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { SOSBeaconModal } from './components/SOSBeaconModal';
-import { HazardType, RiskPrediction, Alert, Shelter, EmergencyContact } from './types';
+import { ConcernedAuthoritiesDirectory } from './components/ConcernedAuthoritiesDirectory';
+import { HazardType, RiskPrediction, Alert, Shelter, EmergencyContact, AuthorityContact } from './types';
 import { HAZARD_PALETTES, getHazardTonalStyle } from './components/HazardPalettes';
 
 export default function App() {
   const { user, logout, guest } = useAuth();
   if (user && (user.role === 'authority' || user.role === 'admin')) {
     return <AuthorityDashboard />;
+  }
+  if (user && (user.role === 'concerned_authority' || user.is_concerned_authority)) {
+    return <ConcernedAuthorityPortal />;
   }
 
   // Navigation & Modal States
@@ -286,67 +291,111 @@ fetchData();
         )}
 
         {activeTab === 'contacts' && (
-          <div className="w-full h-full pt-16 pb-24 overflow-y-auto px-4 max-w-2xl mx-auto space-y-4 no-scrollbar">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-emerald-600 text-2xl">
-                  emergency
-                </span>
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                  {lang === 'mr' ? 'आपत्कालीन संपर्क व निवारा' : 'Emergency Hubs & Helplines'}
-                </h2>
-              </div>
-            </div>
+          <div className="w-full h-full pt-16 pb-24 overflow-y-auto px-4 max-w-4xl mx-auto space-y-8 no-scrollbar">
+            {/* Primary: Live Concerned Disaster Authorities Directory */}
+            <ConcernedAuthoritiesDirectory
+              lang={lang}
+              onShowToast={showSnackbar}
+            />
 
-            {/* Shelters */}
-            <div className="space-y-2.5">
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                {lang === 'mr' ? 'सक्रिय निवारा केंद्रे' : 'Verified Relief Shelters'}
-              </div>
-              {shelters.map(s => (
-                <div key={s.id} className="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-xl">night_shelter</span>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-sm">{s.name}</h4>
-                      <p className="text-xs text-slate-500">{s.address} • {s.capacity} beds capacity</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-emerald-700 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200">
-                    OPEN
+            {/* Verified Emergency Relief Shelters */}
+            <div className="space-y-3 pt-2 border-t border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-emerald-600 text-xl">
+                    night_shelter
                   </span>
+                  <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                    {lang === 'mr' ? 'सक्रिय निवारा केंद्रे' : 'Verified Emergency Relief Shelters'}
+                  </h3>
                 </div>
-              ))}
+                <span className="text-xs font-mono font-bold text-emerald-700 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
+                  {shelters.length} SHELTERS
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {shelters.map(s => (
+                  <div key={s.id} className="p-4 rounded-3xl bg-white border border-slate-200 shadow-xs flex items-center justify-between hover:border-emerald-300 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-xl">night_shelter</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm">{s.name}</h4>
+                        <p className="text-xs text-slate-500">{s.address} • {s.capacity} beds</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-emerald-700 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200 shrink-0">
+                      OPEN
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Helplines */}
-            <div className="space-y-2.5 pt-4">
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                {lang === 'mr' ? '२४/७ आपत्कालीन संपर्क' : '24x7 Emergency Helplines'}
+            {/* 24x7 National & Taluka Emergency Helplines */}
+            <div className="space-y-3 pt-2 border-t border-slate-200">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-rose-600 text-xl">
+                  phone_in_talk
+                </span>
+                <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                  {lang === 'mr' ? '२४/७ राष्ट्रीय व तालुका हेल्पलाइन' : '24x7 National & Taluka Helplines'}
+                </h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <a href="tel:1077" className="p-4 rounded-3xl bg-white hover:bg-slate-50 border border-slate-200 shadow-sm flex items-center justify-between transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-rose-600 text-2xl">call</span>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <a href="tel:1077" className="p-3.5 rounded-2xl bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-300 shadow-xs flex items-center justify-between transition-all group">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-lg">call</span>
+                    </div>
                     <div>
                       <div className="text-xs font-bold text-slate-900">Disaster Helpline</div>
-                      <div className="text-[11px] text-slate-500">Control Room</div>
+                      <div className="text-[10px] text-slate-500">District Control</div>
                     </div>
                   </div>
-                  <span className="text-sm font-bold font-mono text-rose-600">1077</span>
+                  <span className="text-sm font-bold font-mono text-rose-600 group-hover:scale-105 transition-transform">1077</span>
                 </a>
 
-                <a href="tel:02423222333" className="p-4 rounded-3xl bg-white hover:bg-slate-50 border border-slate-200 shadow-sm flex items-center justify-between transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-sky-600 text-2xl">local_police</span>
+                <a href="tel:112" className="p-3.5 rounded-2xl bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 shadow-xs flex items-center justify-between transition-all group">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-lg">local_police</span>
+                    </div>
                     <div>
-                      <div className="text-xs font-bold text-slate-900">Kopargaon Police</div>
-                      <div className="text-[11px] text-slate-500">Station Direct</div>
+                      <div className="text-xs font-bold text-slate-900">Police & SDRF</div>
+                      <div className="text-[10px] text-slate-500">National Emergency</div>
                     </div>
                   </div>
-                  <span className="text-xs font-bold font-mono text-sky-600">02423-222333</span>
+                  <span className="text-sm font-bold font-mono text-blue-600 group-hover:scale-105 transition-transform">112</span>
+                </a>
+
+                <a href="tel:108" className="p-3.5 rounded-2xl bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 shadow-xs flex items-center justify-between transition-all group">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-lg">medical_services</span>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">108 Ambulance</div>
+                      <div className="text-[10px] text-slate-500">Free Trauma Care</div>
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold font-mono text-emerald-600 group-hover:scale-105 transition-transform">108</span>
+                </a>
+
+                <a href="tel:02423222333" className="p-3.5 rounded-2xl bg-white hover:bg-sky-50 border border-slate-200 hover:border-sky-300 shadow-xs flex items-center justify-between transition-all group">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-lg">shield</span>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">Kopargaon Police</div>
+                      <div className="text-[10px] text-slate-500">Station Direct</div>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold font-mono text-sky-600 group-hover:scale-105 transition-transform">02423-222333</span>
                 </a>
               </div>
             </div>

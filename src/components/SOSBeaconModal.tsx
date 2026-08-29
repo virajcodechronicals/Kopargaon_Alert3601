@@ -11,9 +11,12 @@ import {
   ShieldAlert, 
   Radio, 
   CheckCircle2, 
-  Copy 
+  Copy,
+  MessageSquare
 } from 'lucide-react';
 import { SpeechEngine } from '../utils/speech';
+import { store } from '../store';
+import { AuthorityContact } from '../types';
 
 interface SOSBeaconModalProps {
   onClose: () => void;
@@ -33,6 +36,11 @@ export const SOSBeaconModal: React.FC<SOSBeaconModalProps> = ({
   const [emergencyType, setEmergencyType] = useState<'trapped_water' | 'medical' | 'building_collapse' | 'cattle_rescue'>('trapped_water');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [authorities, setAuthorities] = useState<AuthorityContact[]>([]);
+
+  useEffect(() => {
+    store.getAuthorities().then(setAuthorities).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const unsub = SpeechEngine.subscribe(setIsSpeaking);
@@ -269,29 +277,37 @@ Requesting immediate rescue dispatch to this location.`;
                   <Phone className="w-4 h-4" />
                 </div>
               </a>
-
-              <a 
-                href="tel:1077"
-                className="flex items-center justify-between p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 transition-colors"
-              >
-                <div>
-                  <div className="text-[11px] font-medium text-slate-600 dark:text-slate-400">{lang === 'mr' ? 'तहसील आपत्ती कक्ष' : 'Tehsil Control'}</div>
-                  <div className="text-sm font-bold">1077</div>
-                </div>
-                <Phone className="w-4 h-4 text-slate-500" />
-              </a>
-
-              <a 
-                href="tel:02423222333"
-                className="flex items-center justify-between p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 transition-colors"
-              >
-                <div>
-                  <div className="text-[11px] font-medium text-slate-600 dark:text-slate-400">{lang === 'mr' ? 'कोपरगाव पोलीस ठाणे' : 'Kopargaon Police'}</div>
-                  <div className="text-sm font-bold">02423-222333</div>
-                </div>
-                <Phone className="w-4 h-4 text-slate-500" />
-              </a>
             </div>
+
+            {/* Dynamic Concerned Disaster Authorities (Direct Dial) */}
+            {authorities.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
+                  <span>{lang === 'mr' ? 'संबंधित आपत्ती अधिकारी थेट संपर्क' : 'Concerned Disaster Authorities (Direct Dial)'}</span>
+                  <span className="text-[10px] text-emerald-600 font-mono">ON-DUTY</span>
+                </div>
+                <div className="space-y-1.5 max-h-32 overflow-y-auto no-scrollbar">
+                  {authorities.slice(0, 4).map(auth => (
+                    <div key={auth.id} className="p-2 bg-slate-50 dark:bg-slate-800/90 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2 text-xs">
+                      <div className="truncate">
+                        <div className="font-bold text-slate-900 dark:text-slate-100 truncate">{auth.name}</div>
+                        <div className="text-[10px] text-slate-500 truncate">{auth.designation}</div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <a
+                          href={`tel:${auth.phone}`}
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-xs"
+                          title="Call Officer"
+                        >
+                          <Phone className="w-3 h-3" />
+                          <span>{auth.phone}</span>
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons: WhatsApp SOS and Cancel */}

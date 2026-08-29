@@ -1,5 +1,5 @@
 import localforage from 'localforage';
-import { RiskPrediction, Shelter, LiveTelemetry, StructuredAIPrediction } from './types';
+import { RiskPrediction, Shelter, LiveTelemetry, StructuredAIPrediction, AuthorityContact, DisasterDispatchLog, CentralBroadcastPayload, AuthorityActionItem } from './types';
 
 // Configure localForage
 localforage.config({
@@ -272,6 +272,143 @@ export const store = {
       const cached = await localforage.getItem<any>(`surface_${type}_${zone}`);
       if (cached) return cached;
       return { type: "FeatureCollection", features: [] };
+    }
+  },
+
+  // --- Authorities & Disaster Dispatch Management ---
+  async getAuthorities(): Promise<AuthorityContact[]> {
+    try {
+      const res = await fetch('/api/v1/authorities');
+      if (!res.ok) throw new Error('Failed to fetch authorities');
+      const data = await res.json();
+      const list = data.authorities || [];
+      await localforage.setItem('authorities_cache', list);
+      return list;
+    } catch (err) {
+      console.warn('Fetching authorities failed, using offline cache', err);
+      const cached = await localforage.getItem<AuthorityContact[]>('authorities_cache');
+      return cached || [];
+    }
+  },
+
+  async addAuthority(authorityData: Partial<AuthorityContact>): Promise<AuthorityContact> {
+    const token = await this.getToken();
+    const res = await fetch('/api/v1/authorities', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(authorityData)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to add authority' }));
+      throw new Error(err.error || 'Failed to add authority');
+    }
+    const result = await res.json();
+    return result.authority;
+  },
+
+  async updateAuthority(id: string, authorityData: Partial<AuthorityContact>): Promise<AuthorityContact> {
+    const token = await this.getToken();
+    const res = await fetch(`/api/v1/authorities/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(authorityData)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to update authority' }));
+      throw new Error(err.error || 'Failed to update authority');
+    }
+    const result = await res.json();
+    return result.authority;
+  },
+
+  async deleteAuthority(id: string): Promise<boolean> {
+    const token = await this.getToken();
+    const res = await fetch(`/api/v1/authorities/${id}`, {
+      method: 'DELETE',
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to delete authority' }));
+      throw new Error(err.error || 'Failed to delete authority');
+    }
+    return true;
+  },
+
+  async notifyConcernedAuthorities(payload: {
+    hazard: string;
+    severity: string;
+    zone_id: string;
+    trigger_event: string;
+    custom_message?: string;
+    channels?: string[];
+  }): Promise<any> {
+    const token = await this.getToken();
+    const res = await fetch('/api/v1/authorities/notify-concerned', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to notify authorities' }));
+      throw new Error(err.error || 'Failed to notify authorities');
+    }
+    return await res.json();
+  },
+
+  async sendCentralBroadcast(payload: CentralBroadcastPayload): Promise<any> {
+    const token = await this.getToken();
+    const res = await fetch('/api/v1/alerts/central-broadcast', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to dispatch central broadcast' }));
+      throw new Error(err.error || 'Failed to dispatch central broadcast');
+    }
+    return await res.json();
+  },
+
+  async getDispatchLogs(): Promise<DisasterDispatchLog[]> {
+    try {
+      const token = await this.getToken();
+      const res = await fetch('/api/v1/authorities/dispatch-logs', {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch dispatch logs');
+      const data = await res.json();
+      return data.logs || [];
+    } catch (err) {
+      console.warn('Fetching dispatch logs failed', err);
+      return [];
+    }
+  },
+
+  async getLiveAuthorityActions(): Promise<AuthorityActionItem[]> {
+    try {
+      const res = await fetch('/api/v1/authorities/live-actions');
+      if (!res.ok) throw new Error('Failed to fetch live authority actions');
+      const data = await res.json();
+      return data.actions || [];
+    } catch (err) {
+      console.warn('Fetching live authority actions failed', err);
+      return [];
     }
   }
 };

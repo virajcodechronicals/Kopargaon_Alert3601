@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Alert, HazardType } from '../types';
+import { Alert, HazardType, AuthorityActionItem } from '../types';
 import { HAZARD_PALETTES, getHazardTonalStyle } from './HazardPalettes';
 import { SpeechEngine } from '../utils/speech';
+import { store } from '../store';
 
 interface AlertsTimelineProps {
   alerts: Alert[];
@@ -14,6 +15,16 @@ export const AlertsTimeline: React.FC<AlertsTimelineProps> = ({ alerts, lang, on
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speakingAlertId, setSpeakingAlertId] = useState<string | null>(null);
+  const [liveActions, setLiveActions] = useState<AuthorityActionItem[]>([]);
+
+  useEffect(() => {
+    const fetchActions = () => {
+      store.getLiveAuthorityActions().then(setLiveActions).catch(() => {});
+    };
+    fetchActions();
+    const timer = setInterval(fetchActions, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const unsub = SpeechEngine.subscribe(speaking => {
@@ -97,6 +108,41 @@ export const AlertsTimeline: React.FC<AlertsTimelineProps> = ({ alerts, lang, on
           {displayAlerts.length} ACTIVE
         </span>
       </div>
+
+      {/* Live Authority Operations Feed */}
+      {liveActions.length > 0 && (
+        <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900">
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span>
+              <span>{lang === 'mr' ? 'प्राधिकरणांची थेट मदत व बचाव कारवाई:' : 'Live Authority Field Response Actions:'}</span>
+            </div>
+            <span className="text-[10px] font-mono text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full font-semibold">
+              {liveActions.length} ACTIVE
+            </span>
+          </div>
+
+          <div className="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
+            {liveActions.slice(0, 3).map((act) => (
+              <div key={act.id} className="p-2 rounded-xl bg-white border border-blue-100 flex items-center justify-between text-xs gap-2">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="font-bold text-slate-900 shrink-0">{act.authority_name}:</span>
+                  <span className="text-slate-600 truncate font-medium">
+                    {lang === 'mr' && act.action_title_mr ? act.action_title_mr : act.action_title}
+                  </span>
+                </div>
+                <a
+                  href={`tel:${act.phone}`}
+                  className="shrink-0 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-xs">call</span>
+                  <span>{act.phone}</span>
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Staggered Alert Cards */}
       <div className="space-y-3">
