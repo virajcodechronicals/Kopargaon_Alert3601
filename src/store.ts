@@ -712,9 +712,9 @@ export const store = {
         severity: payload.severity || 'HIGH',
         message_en: payload.message_en,
         message_mr: payload.message_mr,
-        siren_activated: !!payload.channels?.includes('Sirens'),
-        cell_broadcast: !!payload.channels?.includes('Cell Broadcast'),
-        push_notification: !!payload.channels?.includes('App Push'),
+        siren_activated: !!payload.channels?.sirens,
+        cell_broadcast: !!payload.channels?.cell_sms,
+        push_notification: !!payload.channels?.push_fcm,
         published: true,
         created_at: new Date().toISOString()
       };

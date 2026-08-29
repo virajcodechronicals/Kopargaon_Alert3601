@@ -1331,7 +1331,87 @@ app.get(['/api/v1/authorities/dispatch-logs', '/api/authorities/dispatch-logs'],
 
 // 9. Live Authority Action Feed
 app.get(['/api/v1/authorities/live-actions', '/api/authorities/live-actions'], (req, res) => {
-  res.json({ success: true, count: LOCAL_AUTHORITY_ACTIONS.length, actions: LOCAL_AUTHORITY_ACTIONS.slice(0, 30) });
+  res.json({ success: true, count: LOCAL_AUTHORITY_ACTIONS.length, actions: LOCAL_AUTHORITY_ACTIONS.slice(0, 50) });
+});
+
+// 10. Submit Concerned Authority Field Action
+app.post(['/api/v1/authorities/submit-action', '/api/authorities/submit-action'], (req, res) => {
+  const {
+    dispatch_id,
+    action_title,
+    action_title_mr,
+    status = 'action_taken',
+    hazard = 'flood',
+    zone_id = 'zone-bet',
+    authority_id,
+    authority_name,
+    designation,
+    department,
+    phone,
+    category,
+    resources
+  } = req.body || {};
+
+  if (!action_title || typeof action_title !== 'string' || action_title.trim().length === 0) {
+    return res.status(400).json({ error: "Please enter a description of the action taken" });
+  }
+
+  const effectiveAuthId = authority_id || 'auth-field-officer';
+  const effectiveAuthName = authority_name || 'Field Officer';
+  const effectiveDesignation = designation || 'Concerned Disaster Authority';
+  const effectiveDept = department || 'Inter-Agency Emergency Response';
+  const effectivePhone = phone || '+91-98000-00000';
+
+  const newAction = {
+    id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    dispatch_id: dispatch_id || `disp-${Date.now()}`,
+    authority_id: effectiveAuthId,
+    authority_name: effectiveAuthName,
+    designation: effectiveDesignation,
+    department: effectiveDept,
+    phone: effectivePhone,
+    hazard: hazard,
+    zone_id: zone_id,
+    action_title: action_title.trim(),
+    action_title_mr: action_title_mr || action_title.trim(),
+    status: status,
+    category: category || 'rescue',
+    resources: resources || {},
+    timestamp: new Date().toISOString()
+  };
+
+  LOCAL_AUTHORITY_ACTIONS.unshift(newAction);
+
+  if (dispatch_id) {
+    const matchedDispatch = LOCAL_DISPATCH_LOGS.find(d => d.id === dispatch_id);
+    if (matchedDispatch && Array.isArray(matchedDispatch.target_authorities)) {
+      const targetAuth = matchedDispatch.target_authorities.find(
+        (t) => t.authority_id === effectiveAuthId || t.name === effectiveAuthName || t.department === effectiveDept
+      );
+      if (targetAuth) {
+        targetAuth.status = status;
+        targetAuth.action_note = action_title;
+        targetAuth.action_timestamp = new Date().toISOString();
+      }
+    }
+  }
+
+  res.status(201).json({
+    success: true,
+    action: newAction,
+    message: 'Field action recorded successfully and published to Live Public Emergency Feed.'
+  });
+});
+
+// 11. Acknowledge Dispatch
+app.post(['/api/v1/authorities/acknowledge-dispatch', '/api/authorities/acknowledge-dispatch'], (req, res) => {
+  const { dispatch_id, note } = req.body || {};
+  const matchedDispatch = LOCAL_DISPATCH_LOGS.find(d => d.id === dispatch_id);
+  if (matchedDispatch) {
+    res.json({ success: true, message: 'Dispatch acknowledged' });
+  } else {
+    res.json({ success: true, message: 'Dispatch acknowledged' });
+  }
 });
 
 // Fallback 404 handler for API routes

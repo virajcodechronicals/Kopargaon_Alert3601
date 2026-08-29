@@ -128,7 +128,7 @@ export interface AuthorityContact {
 
 export interface AuthorityActionItem {
   id: string;
-  dispatch_id: string;
+  dispatch_id?: string;
   authority_id: string;
   authority_name: string;
   designation: string;
@@ -140,6 +140,21 @@ export interface AuthorityActionItem {
   action_title_mr: string;
   status: 'acknowledged' | 'action_taken' | 'in_field';
   timestamp: string;
+  category?: string;
+  resources?: {
+    boats?: number;
+    volunteers?: number;
+    teams?: number;
+    vehicles?: number;
+    pumps?: number;
+    tankers?: number;
+    food_packets?: number;
+    divers?: number;
+    linemen?: number;
+    ambulances?: number;
+    sandbags?: number;
+    tarpaulins?: number;
+  };
 }
 
 export interface DisasterDispatchLog {

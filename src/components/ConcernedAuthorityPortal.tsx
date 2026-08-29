@@ -2,114 +2,45 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from './Auth';
 import { HazardType, RiskLevel, AuthorityActionItem, AuthorityContact, DisasterDispatchLog, Alert } from '../types';
+import { DOMAIN_ACTION_TEMPLATES, DomainActionTemplate, DomainActionResource } from '../data/domainActions';
 import { HAZARD_PALETTES } from './HazardPalettes';
 import { store } from '../store';
 import { safeFetchJson } from '../utils/api';
 
-interface DepartmentActionPreset {
-  dept: string;
-  en: string;
-  mr: string;
-  hazard: HazardType;
-}
-
-const DEPARTMENT_PRESETS: DepartmentActionPreset[] = [
-  // WRD
-  {
-    dept: 'Water Resources & Irrigation',
-    en: '24x7 hydro-gauging team deployed at Godavari Old Bridge; continuous discharge telemetry linked with Gangapur & Darna dam control.',
-    mr: 'गोदावरी जुन्या पुलावर जलमापक पथक २४ तास तैनात; गंगापूर व दारणा धरणाशी थेट विसर्ग समन्वय सुरू.',
-    hazard: 'flood'
-  },
-  {
-    dept: 'Water Resources & Irrigation',
-    en: 'Monitored canal gate discharge; closed low-lying sluice gates to prevent backwater ingress into residential sectors.',
-    mr: 'कालवा विसर्ग नियंत्रित केला; सखल भागातील पाणी रोखण्यासाठी विमोचक दरवाजे बंद केले.',
-    hazard: 'flood'
-  },
-  // Police
-  {
-    dept: 'Police & Public Safety',
-    en: 'Barricaded low-level Godavari Old Bridge and deployed traffic diversions towards New Bypass Bridge.',
-    mr: 'गोदावरी जुन्या पुलावर बॅरिकेडिंग करून वाहतूक नवीन बायपास पुलावरून वळवण्यात आली.',
-    hazard: 'flood'
-  },
-  {
-    dept: 'Police & Public Safety',
-    en: 'Enforced riverbank perimeter cordon along Bet Kopargaon ghats; cleared unauthorized crowds and tourists.',
-    mr: 'बेट कोपरगाव नदीकाठावर जमावबंदी व सुरक्षा घेरा तयार केला; पर्यटकांना सुरक्षित अंतरावर ठेवले.',
-    hazard: 'flood'
-  },
-  // Fire & Rescue
-  {
-    dept: 'Fire Brigade & Water Rescue',
-    en: 'Deployed 2 motorized swift-water rescue boats and 12 certified swimmers on active vigil along Bet Kopargaon riverbanks.',
-    mr: 'बेट कोपरगाव गोदावरी नदीपात्रात २ आपत्कालीन बचाव बोटी व १२ जीवरक्षक तैनात करण्यात आले.',
-    hazard: 'flood'
-  },
-  {
-    dept: 'Fire Brigade & Water Rescue',
-    en: 'Conducted emergency evacuation for 18 families stranded in low-lying riverside agricultural hutments.',
-    mr: 'नदीकाठच्या सखल भागातील १८ पूरग्रस्त कुटुंबांना सुरक्षित मदत केंद्रात हलवले.',
-    hazard: 'flood'
-  },
-  // Health
-  {
-    dept: 'Health & Medical Services',
-    en: 'Stationed 3 Advanced 108 Life Support Ambulances and trauma first-aid desk at K.J. Somaiya Relief Camp.',
-    mr: 'के. जे. सोमय्या मदत केंद्रात ३ रुग्णवाहिका व प्राथमिक प्रथमोपचार पथक २४ तास तैनात.',
-    hazard: 'flood'
-  },
-  {
-    dept: 'Health & Medical Services',
-    en: 'Distributed 2,500 ORS sachets and chlorinated drinking water packets across rural wards.',
-    mr: 'ग्रामीण भागात २,५०० ओआरएस पाकिटे व शुद्ध पिण्याच्या पाण्याच्या बाटल्यांचे वाटप केले.',
-    hazard: 'heatwave'
-  },
-  // Administration / Tahsil
-  {
-    dept: 'Administration & Revenue',
-    en: 'Activated K.J. Somaiya College Hall as Tier-1 evacuation center with hot meals and drinking water for 800 citizens.',
-    mr: 'सोमय्या कॉलेज हॉलमध्ये ८०० नागरिकांसाठी अन्नधान्य व निवारा केंद्राची सोय सुरू केली.',
-    hazard: 'flood'
-  },
-  // Power / MSEDCL
-  {
-    dept: 'MSEDCL & Power Grid',
-    en: 'De-energized flood-prone 11kV substations along river banks in Bet sector to prevent electrical accidents.',
-    mr: 'बेट भागातील पूरबाधित ११ केव्ही ट्रान्सफॉर्मर बंद करून संभाव्य वीज अपघात टाळले.',
-    hazard: 'flood'
-  },
-  // Agriculture
-  {
-    dept: 'Agriculture & Krishi',
-    en: 'Dispatched 4 panchnama survey teams to assess crop damage in Kolpewadi & Sanjivani belt.',
-    mr: 'कोळपेवाडी व संजिवनी पट्ट्यात पीक नुकसान पंचनाम्यासाठी ४ पथके रवाना केली.',
-    hazard: 'unseasonal'
-  }
-];
-
 export const ConcernedAuthorityPortal: React.FC = () => {
   const { user, logout } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'dispatches' | 'submit-action' | 'actions-feed' | 'citizen-reports'>('dispatches');
+  const [activeTab, setActiveTab] = useState<'domain-actions' | 'submit-action' | 'dispatches' | 'actions-feed'>('domain-actions');
   const [dispatchLogs, setDispatchLogs] = useState<DisasterDispatchLog[]>([]);
   const [liveActions, setLiveActions] = useState<AuthorityActionItem[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // Submit Action Form State
+  // Quick Deploy Action Modal State
+  const [selectedTemplate, setSelectedTemplate] = useState<DomainActionTemplate | null>(null);
+  const [modalResources, setModalResources] = useState<DomainActionResource>({});
+  const [modalZone, setModalZone] = useState<string>('zone-bet');
+  const [modalStatus, setModalStatus] = useState<'action_taken' | 'in_field' | 'acknowledged'>('action_taken');
+  const [modalCustomNotes, setModalCustomNotes] = useState<string>('');
+  const [deploying, setDeploying] = useState<boolean>(false);
+
+  // Custom Submit Action Form State
   const [selectedDispatchId, setSelectedDispatchId] = useState<string>('');
   const [actionTitle, setActionTitle] = useState<string>('');
   const [actionTitleMr, setActionTitleMr] = useState<string>('');
   const [actionStatus, setActionStatus] = useState<'action_taken' | 'in_field' | 'acknowledged'>('action_taken');
   const [actionHazard, setActionHazard] = useState<HazardType>('flood');
   const [actionZone, setActionZone] = useState<string>(user?.zone_id || 'zone-bet');
+  const [actionCategory, setActionCategory] = useState<string>('rescue');
   const [submitting, setSubmitting] = useState<boolean>(false);
 
+  // Filter for Domain Actions tab
+  const [domainFilter, setDomainFilter] = useState<string>('my-dept');
+  const [hazardFilter, setHazardFilter] = useState<string>('all');
+
   const officerName = user?.name || 'Concerned Officer';
-  const officerDept = user?.department || 'Department Authority';
+  const officerDept = user?.department || 'Water Resources & Irrigation';
   const officerDesignation = user?.designation || 'Concerned Disaster Authority';
   const officerPhone = user?.phone || '+91-98000-00000';
   const officerZone = user?.zone_id || 'all-taluka';
@@ -150,17 +81,92 @@ export const ConcernedAuthorityPortal: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Filter presets for this officer's department
-  const officerPresets = DEPARTMENT_PRESETS.filter(p => 
-    p.dept.toLowerCase().includes(officerDept.toLowerCase()) || 
-    officerDept.toLowerCase().includes(p.dept.toLowerCase())
-  );
+  // Filter domain templates based on tab selection
+  const filteredTemplates = DOMAIN_ACTION_TEMPLATES.filter(tmpl => {
+    if (domainFilter === 'my-dept') {
+      const matchDept = tmpl.department.toLowerCase().includes(officerDept.toLowerCase()) ||
+                        officerDept.toLowerCase().includes(tmpl.department.toLowerCase());
+      if (!matchDept) return false;
+    } else if (domainFilter !== 'all') {
+      if (tmpl.department !== domainFilter) return false;
+    }
 
-  const applyPreset = (preset: DepartmentActionPreset) => {
-    setActionTitle(preset.en);
-    setActionTitleMr(preset.mr);
-    setActionHazard(preset.hazard);
-    showToast(`Loaded standard ${preset.dept} action template`);
+    if (hazardFilter !== 'all' && tmpl.hazard !== 'all' && tmpl.hazard !== hazardFilter) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const handleOpenQuickDeploy = (template: DomainActionTemplate) => {
+    setSelectedTemplate(template);
+    setModalResources({ ...template.default_resources });
+    setModalZone(template.recommended_zone || officerZone || 'zone-bet');
+    setModalStatus('action_taken');
+    setModalCustomNotes('');
+  };
+
+  const handleExecuteQuickDeploy = async () => {
+    if (!selectedTemplate) return;
+    setDeploying(true);
+
+    try {
+      const token = await store.getToken();
+      
+      // Construct detailed description with resource metrics
+      let resourceSummary = '';
+      const r = modalResources;
+      const rParts: string[] = [];
+      if (r.boats) rParts.push(`${r.boats} Motorized Boats`);
+      if (r.volunteers) rParts.push(`${r.volunteers} Volunteers`);
+      if (r.divers) rParts.push(`${r.divers} Divers`);
+      if (r.teams) rParts.push(`${r.teams} Special Teams`);
+      if (r.ambulances) rParts.push(`${r.ambulances} Ambulances`);
+      if (r.pumps) rParts.push(`${r.pumps} Dewatering Pumps`);
+      if (r.tankers) rParts.push(`${r.tankers} Water Tankers`);
+      if (r.food_packets) rParts.push(`${r.food_packets} Food Packets`);
+      if (r.linemen) rParts.push(`${r.linemen} Linemen`);
+      if (r.sandbags) rParts.push(`${r.sandbags} Sandbags`);
+      if (r.tarpaulins) rParts.push(`${r.tarpaulins} Tarpaulins`);
+
+      if (rParts.length > 0) {
+        resourceSummary = ` [Deployed: ${rParts.join(', ')}]`;
+      }
+
+      const finalTitleEn = `${selectedTemplate.title_en}${resourceSummary}${modalCustomNotes ? ` - Note: ${modalCustomNotes}` : ''}`;
+      const finalTitleMr = `${selectedTemplate.title_mr}${modalCustomNotes ? ` - टिप: ${modalCustomNotes}` : ''}`;
+
+      const res = await safeFetchJson('/api/v1/authorities/submit-action', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: JSON.stringify({
+          dispatch_id: `action-quick-${Date.now()}`,
+          action_title: finalTitleEn,
+          action_title_mr: finalTitleMr,
+          status: modalStatus,
+          hazard: selectedTemplate.hazard === 'all' ? 'flood' : selectedTemplate.hazard,
+          zone_id: modalZone,
+          category: selectedTemplate.category,
+          resources: modalResources,
+          authority_id: user?.authority_id || user?.id,
+          authority_name: officerName,
+          designation: officerDesignation,
+          department: selectedTemplate.department || officerDept,
+          phone: officerPhone
+        })
+      });
+
+      if (!res.ok) throw new Error(res.error || 'Failed to deploy domain action');
+
+      showToast(`Action Deployed: ${selectedTemplate.title_en.substring(0, 45)}...`);
+      setSelectedTemplate(null);
+      setActiveTab('actions-feed');
+      loadPortalData();
+    } catch (err: any) {
+      showToast('Error deploying action: ' + err.message);
+    } finally {
+      setDeploying(false);
+    }
   };
 
   const handleAcknowledgeDispatch = async (dispatch: DisasterDispatchLog) => {
@@ -184,7 +190,7 @@ export const ConcernedAuthorityPortal: React.FC = () => {
     }
   };
 
-  const handleSubmitAction = async (e: React.FormEvent) => {
+  const handleSubmitCustomAction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!actionTitle.trim()) {
       showToast('Please enter an action description.');
@@ -204,6 +210,7 @@ export const ConcernedAuthorityPortal: React.FC = () => {
           status: actionStatus,
           hazard: actionHazard,
           zone_id: actionZone,
+          category: actionCategory,
           authority_id: user?.authority_id || user?.id,
           authority_name: officerName,
           designation: officerDesignation,
@@ -239,6 +246,21 @@ export const ConcernedAuthorityPortal: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 font-sans pb-16">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl bg-slate-900 text-white border border-slate-700 shadow-2xl text-xs font-bold flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-emerald-400 text-base">check_circle</span>
+            <span>{toastMsg}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Top Officer Header HUD */}
       <header className="sticky top-0 z-40 bg-slate-900 text-white shadow-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -291,6 +313,18 @@ export const ConcernedAuthorityPortal: React.FC = () => {
         {/* Portal Navigation Tabs */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex border-t border-slate-800/80 gap-1 overflow-x-auto no-scrollbar">
           <button
+            onClick={() => setActiveTab('domain-actions')}
+            className={`flex items-center gap-2 py-3 px-4 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
+              activeTab === 'domain-actions'
+                ? 'border-amber-500 text-amber-400 bg-amber-500/10'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span className="material-symbols-outlined text-base">task_alt</span>
+            <span>Domain Actions Hub (1-Click Deploy)</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('dispatches')}
             className={`flex items-center gap-2 py-3 px-4 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
               activeTab === 'dispatches'
@@ -316,7 +350,7 @@ export const ConcernedAuthorityPortal: React.FC = () => {
             }`}
           >
             <span className="material-symbols-outlined text-base">bolt</span>
-            <span>Submit Live Field Action</span>
+            <span>Custom Field Action Log</span>
           </button>
 
           <button
@@ -328,7 +362,7 @@ export const ConcernedAuthorityPortal: React.FC = () => {
             }`}
           >
             <span className="material-symbols-outlined text-base">stream</span>
-            <span>Inter-Agency Live Action Stream</span>
+            <span>Live Inter-Agency Action Stream</span>
             {liveActions.length > 0 && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-indigo-500 text-white">
                 {liveActions.length}
@@ -348,12 +382,197 @@ export const ConcernedAuthorityPortal: React.FC = () => {
               Departmental Operational Console — Sub-Divisional Disaster Cell
             </p>
             <p className="mt-0.5 text-amber-800">
-              You are logged in as a <strong>Concerned Disaster Authority</strong>. Any action logged here directly updates the live emergency feed for citizens and confirms status on the SDM Admin Incident Command Dashboard in real time.
+              Logged in as: <strong>{officerName}</strong> ({officerDept}). Select your departmental actions below (e.g. deploying boats, volunteers, ambulances, tankers, or de-energizing lines) to broadcast directly to citizens and the SDM incident command room.
             </p>
           </div>
         </div>
 
-        {/* VIEW 1: ADMIN ORDERS & DISPATCHES */}
+        {/* TAB 1: DOMAIN ACTIONS HUB (1-Click Deployment) */}
+        {activeTab === 'domain-actions' && (
+          <div className="flex flex-col gap-6">
+            {/* Filter Bar */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                  Domain-Specific Operational Actions
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Pre-configured Standard Operating Procedures (SOPs) with resource metrics for your domain.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Department Scope Selector */}
+                <select
+                  value={domainFilter}
+                  onChange={e => setDomainFilter(e.target.value)}
+                  className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold focus:border-slate-900 focus:bg-white outline-none"
+                >
+                  <option value="my-dept">⭐ My Department ({officerDept})</option>
+                  <option value="all">🌐 All Agency Domains</option>
+                  <option value="Water Resources & Irrigation">🌊 Water Resources & Irrigation</option>
+                  <option value="Fire Brigade & Water Rescue">🚒 Fire Brigade & Rescue</option>
+                  <option value="Police & Public Safety">👮 Police & Public Safety</option>
+                  <option value="Health & Medical Services">🏥 Health & Medical Services</option>
+                  <option value="Administration & Revenue">🏛️ Administration & Revenue</option>
+                  <option value="Agriculture & Krishi">🌾 Agriculture & Krishi</option>
+                  <option value="MSEDCL & Power Grid">⚡ MSEDCL & Power Grid</option>
+                  <option value="Municipal Administration">🚰 Municipal Administration</option>
+                  <option value="NGO & Volunteer Relief">🤝 NGO & Volunteer Relief</option>
+                </select>
+
+                {/* Hazard Filter */}
+                <select
+                  value={hazardFilter}
+                  onChange={e => setHazardFilter(e.target.value)}
+                  className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold focus:border-slate-900 focus:bg-white outline-none"
+                >
+                  <option value="all">All Hazards</option>
+                  <option value="flood">Flood (पूर)</option>
+                  <option value="drought">Drought (दुष्काळ)</option>
+                  <option value="heatwave">Heatwave (उष्णतेची लाट)</option>
+                  <option value="unseasonal">Unseasonal Rain (अवेळी पाऊस)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Action Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredTemplates.map(tmpl => {
+                const palette = HAZARD_PALETTES[tmpl.hazard === 'all' ? 'flood' : tmpl.hazard] || HAZARD_PALETTES.flood;
+                const isMyDept = tmpl.department.toLowerCase().includes(officerDept.toLowerCase()) || 
+                                 officerDept.toLowerCase().includes(tmpl.department.toLowerCase());
+
+                return (
+                  <div
+                    key={tmpl.id}
+                    className={`rounded-2xl border p-5 flex flex-col justify-between transition-all bg-white hover:shadow-md ${
+                      isMyDept ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'
+                    }`}
+                  >
+                    <div>
+                      {/* Top Header */}
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-9 h-9 rounded-xl ${tmpl.badge_color} text-white flex items-center justify-center shadow-xs`}>
+                            <span className="material-symbols-outlined text-xl">{tmpl.icon}</span>
+                          </div>
+                          <div>
+                            <span className="text-[11px] font-bold text-slate-800 block line-clamp-1">
+                              {tmpl.department}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              Sector: {tmpl.recommended_zone}
+                            </span>
+                          </div>
+                        </div>
+
+                        {tmpl.hazard !== 'all' && (
+                          <span 
+                            className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                            style={{ backgroundColor: palette.tone90, color: palette.tone30 }}
+                          >
+                            {tmpl.hazard}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Action Titles */}
+                      <h3 className="text-sm font-extrabold text-slate-900 leading-snug">
+                        {tmpl.title_en}
+                      </h3>
+
+                      <p className="text-xs font-semibold text-slate-600 mt-1 line-clamp-2">
+                        {tmpl.title_mr}
+                      </p>
+
+                      <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
+                        {tmpl.description_en}
+                      </p>
+
+                      {/* Resource Metrics Chips */}
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap gap-1.5">
+                        {tmpl.default_resources.boats && (
+                          <span className="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-800 font-mono font-bold text-[11px] border border-blue-100 flex items-center gap-1">
+                            <span>🚤</span>
+                            <span>{tmpl.default_resources.boats} Boats</span>
+                          </span>
+                        )}
+                        {tmpl.default_resources.volunteers && (
+                          <span className="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-mono font-bold text-[11px] border border-emerald-100 flex items-center gap-1">
+                            <span>👥</span>
+                            <span>{tmpl.default_resources.volunteers} Volunteers</span>
+                          </span>
+                        )}
+                        {tmpl.default_resources.divers && (
+                          <span className="px-2 py-0.5 rounded-lg bg-cyan-50 text-cyan-800 font-mono font-bold text-[11px] border border-cyan-100 flex items-center gap-1">
+                            <span>🤿</span>
+                            <span>{tmpl.default_resources.divers} Divers</span>
+                          </span>
+                        )}
+                        {tmpl.default_resources.teams && (
+                          <span className="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-800 font-mono font-bold text-[11px] border border-indigo-100 flex items-center gap-1">
+                            <span>🛡️</span>
+                            <span>{tmpl.default_resources.teams} Squads</span>
+                          </span>
+                        )}
+                        {tmpl.default_resources.ambulances && (
+                          <span className="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-800 font-mono font-bold text-[11px] border border-rose-100 flex items-center gap-1">
+                            <span>🚑</span>
+                            <span>{tmpl.default_resources.ambulances} Ambulances</span>
+                          </span>
+                        )}
+                        {tmpl.default_resources.pumps && (
+                          <span className="px-2 py-0.5 rounded-lg bg-orange-50 text-orange-800 font-mono font-bold text-[11px] border border-orange-100 flex items-center gap-1">
+                            <span>⚙️</span>
+                            <span>{tmpl.default_resources.pumps} Heavy Pumps</span>
+                          </span>
+                        )}
+                        {tmpl.default_resources.tankers && (
+                          <span className="px-2 py-0.5 rounded-lg bg-sky-50 text-sky-800 font-mono font-bold text-[11px] border border-sky-100 flex items-center gap-1">
+                            <span>🚰</span>
+                            <span>{tmpl.default_resources.tankers} Water Tankers</span>
+                          </span>
+                        )}
+                        {tmpl.default_resources.food_packets && (
+                          <span className="px-2 py-0.5 rounded-lg bg-purple-50 text-purple-800 font-mono font-bold text-[11px] border border-purple-100 flex items-center gap-1">
+                            <span>🍲</span>
+                            <span>{tmpl.default_resources.food_packets} Meals</span>
+                          </span>
+                        )}
+                        {tmpl.default_resources.linemen && (
+                          <span className="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-800 font-mono font-bold text-[11px] border border-amber-100 flex items-center gap-1">
+                            <span>⚡</span>
+                            <span>{tmpl.default_resources.linemen} Linemen</span>
+                          </span>
+                        )}
+                        {tmpl.default_resources.tarpaulins && (
+                          <span className="px-2 py-0.5 rounded-lg bg-green-50 text-green-800 font-mono font-bold text-[11px] border border-green-100 flex items-center gap-1">
+                            <span>⛺</span>
+                            <span>{tmpl.default_resources.tarpaulins} Tarpaulins</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Deploy Button */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+                      <button
+                        onClick={() => handleOpenQuickDeploy(tmpl)}
+                        className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                      >
+                        <span className="material-symbols-outlined text-base text-amber-400">bolt</span>
+                        <span>1-Click Quick Deploy &rarr;</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: ADMIN ORDERS & DISPATCHES */}
         {activeTab === 'dispatches' && (
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
@@ -482,15 +701,14 @@ export const ConcernedAuthorityPortal: React.FC = () => {
           </div>
         )}
 
-        {/* VIEW 2: SUBMIT LIVE FIELD ACTION */}
+        {/* TAB 3: CUSTOM SUBMIT ACTION FORM */}
         {activeTab === 'submit-action' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Form Section */}
             <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div>
                   <h2 className="text-base font-bold text-slate-900 tracking-tight">
-                    Record Live Departmental Action
+                    Record Custom Departmental Action
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Broadcasting from: <strong>{officerName}</strong> ({officerDept})
@@ -501,11 +719,11 @@ export const ConcernedAuthorityPortal: React.FC = () => {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
-                  Live Public Link
+                  Live Citizen Link
                 </span>
               </div>
 
-              <form onSubmit={handleSubmitAction} className="mt-5 flex flex-col gap-4">
+              <form onSubmit={handleSubmitCustomAction} className="mt-5 flex flex-col gap-4">
                 {/* Tied Dispatch Selector */}
                 {relevantDispatches.length > 0 && (
                   <div className="flex flex-col gap-1.5">
@@ -606,7 +824,7 @@ export const ConcernedAuthorityPortal: React.FC = () => {
                   </label>
                   <textarea
                     rows={3}
-                    placeholder="e.g. Barricaded Godavari Old Bridge and stationed 4 SDRF rescue swimmers at Bet Kopargaon ghats."
+                    placeholder="e.g. Stationed 4 motorized rescue boats, 16 volunteers and 8 divers at Bet Kopargaon ghats."
                     value={actionTitle}
                     onChange={e => setActionTitle(e.target.value)}
                     className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-xs focus:border-slate-900 focus:bg-white outline-none leading-relaxed"
@@ -620,7 +838,7 @@ export const ConcernedAuthorityPortal: React.FC = () => {
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="उदा. गोदावरी जुन्या पुलावर बॅरिकेडिंग केले असून ४ जीवरक्षक तैनात करण्यात आले आहेत."
+                    placeholder="उदा. गोदावरी नदीकाठी ४ बचाव बोटी व १६ स्वयंसेवक जीवरक्षक तैनात करण्यात आले आहेत."
                     value={actionTitleMr}
                     onChange={e => setActionTitleMr(e.target.value)}
                     className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-xs focus:border-slate-900 focus:bg-white outline-none leading-relaxed"
@@ -644,36 +862,25 @@ export const ConcernedAuthorityPortal: React.FC = () => {
               </form>
             </div>
 
-            {/* Department Fast Action Presets */}
+            {/* Quick Link to Domain Actions */}
             <div className="flex flex-col gap-4">
               <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
-                  <span className="material-symbols-outlined text-sky-600 text-lg">electric_bolt</span>
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-100 text-amber-600">
+                  <span className="material-symbols-outlined text-lg">bolt</span>
                   <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    {officerDept} Presets
+                    Standard Domain Actions
                   </h3>
                 </div>
-                <p className="text-xs text-slate-500 mb-3">
-                  1-Tap to autofill standard departmental response actions:
+                <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                  Instead of typing manually, you can use our 1-click domain actions for {officerDept} with pre-configured boats, volunteers, teams, and shelters:
                 </p>
-
-                <div className="flex flex-col gap-2.5">
-                  {(officerPresets.length > 0 ? officerPresets : DEPARTMENT_PRESETS.slice(0, 4)).map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => applyPreset(preset)}
-                      className="text-left p-3 rounded-xl bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 transition-all text-xs text-slate-800 group"
-                    >
-                      <p className="font-semibold group-hover:text-sky-900 line-clamp-2">
-                        {preset.en}
-                      </p>
-                      <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
-                        {preset.mr}
-                      </p>
-                    </button>
-                  ))}
-                </div>
+                <button
+                  onClick={() => setActiveTab('domain-actions')}
+                  className="w-full py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base">task_alt</span>
+                  <span>Open 1-Click Domain Actions Hub</span>
+                </button>
               </div>
 
               {/* Direct Hotline Card */}
@@ -707,7 +914,7 @@ export const ConcernedAuthorityPortal: React.FC = () => {
           </div>
         )}
 
-        {/* VIEW 3: INTER-AGENCY LIVE ACTION STREAM */}
+        {/* TAB 4: INTER-AGENCY LIVE ACTION STREAM */}
         {activeTab === 'actions-feed' && (
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -716,7 +923,7 @@ export const ConcernedAuthorityPortal: React.FC = () => {
                   Live Field Response Feed (All Departments)
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Synchronized actions taken by Police, WRD, Fire, Health, Tahsil, Agriculture, and MSEDCL.
+                  Synchronized real-time actions taken by Police, WRD, Fire, Health, Tahsil, Agriculture, MSEDCL, and NGOs.
                 </p>
               </div>
               <button
@@ -733,7 +940,7 @@ export const ConcernedAuthorityPortal: React.FC = () => {
                 <span>Recent Authority Field Actions ({liveActions.length})</span>
                 <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                  Streaming Live to Citizens
+                  Streaming Live to Citizens & SDM HQ
                 </span>
               </div>
 
@@ -743,48 +950,57 @@ export const ConcernedAuthorityPortal: React.FC = () => {
                   const isMine = act.authority_id === user?.authority_id || act.department === officerDept;
 
                   return (
-                    <div key={act.id} className={`p-4 sm:p-5 transition-colors ${isMine ? 'bg-sky-50/40' : 'hover:bg-slate-50/60'}`}>
+                    <div key={act.id} className={`p-4 sm:p-5 transition-colors ${isMine ? 'bg-amber-50/30' : 'hover:bg-slate-50/60'}`}>
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-900 text-white">
                             {act.department}
                           </span>
-                          <span className="text-xs font-semibold text-slate-800">
-                            {act.authority_name} ({act.designation})
+                          <span className="text-xs font-bold text-slate-700">
+                            {act.authority_name}
+                          </span>
+                          <span className="text-[11px] text-slate-500">
+                            ({act.designation})
                           </span>
                           {isMine && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-200 text-sky-900">
-                              My Unit
+                            <span className="px-2 py-0.2 rounded bg-amber-100 text-amber-900 text-[10px] font-bold">
+                              My Action
                             </span>
                           )}
                         </div>
 
-                        <span className="text-[11px] text-slate-400 font-mono shrink-0">
-                          {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span 
+                            className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                            style={{ backgroundColor: palette.tone90, color: palette.tone30 }}
+                          >
+                            {act.hazard}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            act.status === 'action_taken' 
+                              ? 'bg-emerald-100 text-emerald-800' 
+                              : act.status === 'in_field'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-sky-100 text-sky-800'
+                          }`}>
+                            {act.status === 'action_taken' ? '✓ Action Completed' : act.status === 'in_field' ? '⚡ In Field' : '● Acknowledged'}
+                          </span>
+                        </div>
                       </div>
 
-                      <p className="text-xs font-semibold text-slate-900 leading-relaxed">
+                      <p className="text-sm font-bold text-slate-900 leading-snug">
                         {act.action_title}
                       </p>
-                      {act.action_title_mr && (
-                        <p className="text-xs text-slate-600 mt-1 italic leading-relaxed">
+
+                      {act.action_title_mr && act.action_title_mr !== act.action_title && (
+                        <p className="text-xs text-slate-600 font-medium mt-1">
                           {act.action_title_mr}
                         </p>
                       )}
 
-                      <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
-                        <div className="flex items-center gap-3">
-                          <span>Zone: <strong>{act.zone_id}</strong></span>
-                          <span>•</span>
-                          <span className="capitalize">Hazard: <strong>{act.hazard}</strong></span>
-                        </div>
-
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          act.status === 'action_taken' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          {act.status === 'action_taken' ? '✓ Action Taken' : '⚡ In Field'}
-                        </span>
+                      <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+                        <span>Jurisdiction: <strong>{act.zone_id}</strong></span>
+                        <span className="font-mono">{new Date(act.timestamp).toLocaleString()}</span>
                       </div>
                     </div>
                   );
@@ -795,18 +1011,266 @@ export const ConcernedAuthorityPortal: React.FC = () => {
         )}
       </main>
 
-      {/* Floating Toast Notification */}
+      {/* QUICK DEPLOY ACTION MODAL */}
       <AnimatePresence>
-        {toastMsg && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-2xl bg-slate-900 text-white text-xs font-semibold shadow-2xl border border-slate-800 flex items-center gap-2 max-w-md w-full mx-4"
-          >
-            <span className="material-symbols-outlined text-emerald-400 text-base">check_circle</span>
-            <span className="flex-1">{toastMsg}</span>
-          </motion.div>
+        {selectedTemplate && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden text-slate-900"
+            >
+              {/* Header */}
+              <div className="p-5 bg-slate-900 text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl ${selectedTemplate.badge_color} text-white flex items-center justify-center shadow-sm`}>
+                    <span className="material-symbols-outlined text-2xl">{selectedTemplate.icon}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                      1-Click Domain Action Deployment
+                    </span>
+                    <h3 className="text-sm font-bold text-white leading-tight">
+                      {selectedTemplate.department}
+                    </h3>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedTemplate(null)}
+                  className="w-8 h-8 rounded-full hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                >
+                  <span className="material-symbols-outlined text-lg">close</span>
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-900 leading-snug">
+                    {selectedTemplate.title_en}
+                  </h4>
+                  <p className="text-xs font-semibold text-slate-600 mt-1">
+                    {selectedTemplate.title_mr}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-2">
+                    {selectedTemplate.description_en}
+                  </p>
+                </div>
+
+                {/* Resource Metrics Customizer */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Deployable Resource Quantification:
+                  </span>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Boats */}
+                    {selectedTemplate.default_resources.boats !== undefined && (
+                      <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                          <span>🚤</span> Boats:
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setModalResources(r => ({ ...r, boats: Math.max(1, (r.boats || 1) - 1) }))}
+                            className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
+                          >-</button>
+                          <span className="text-xs font-bold font-mono w-5 text-center">{modalResources.boats}</span>
+                          <button
+                            type="button"
+                            onClick={() => setModalResources(r => ({ ...r, boats: (r.boats || 1) + 1 }))}
+                            className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
+                          >+</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Volunteers */}
+                    {selectedTemplate.default_resources.volunteers !== undefined && (
+                      <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                          <span>👥</span> Volunteers:
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setModalResources(r => ({ ...r, volunteers: Math.max(1, (r.volunteers || 5) - 5) }))}
+                            className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
+                          >-</button>
+                          <span className="text-xs font-bold font-mono w-6 text-center">{modalResources.volunteers}</span>
+                          <button
+                            type="button"
+                            onClick={() => setModalResources(r => ({ ...r, volunteers: (r.volunteers || 5) + 5 }))}
+                            className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
+                          >+</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Divers */}
+                    {selectedTemplate.default_resources.divers !== undefined && (
+                      <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                          <span>🤿</span> Divers:
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setModalResources(r => ({ ...r, divers: Math.max(1, (r.divers || 2) - 2) }))}
+                            className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
+                          >-</button>
+                          <span className="text-xs font-bold font-mono w-5 text-center">{modalResources.divers}</span>
+                          <button
+                            type="button"
+                            onClick={() => setModalResources(r => ({ ...r, divers: (r.divers || 2) + 2 }))}
+                            className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
+                          >+</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Teams */}
+                    {selectedTemplate.default_resources.teams !== undefined && (
+                      <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                          <span>🛡️</span> Teams:
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setModalResources(r => ({ ...r, teams: Math.max(1, (r.teams || 1) - 1) }))}
+                            className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
+                          >-</button>
+                          <span className="text-xs font-bold font-mono w-5 text-center">{modalResources.teams}</span>
+                          <button
+                            type="button"
+                            onClick={() => setModalResources(r => ({ ...r, teams: (r.teams || 1) + 1 }))}
+                            className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
+                          >+</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ambulances */}
+                    {selectedTemplate.default_resources.ambulances !== undefined && (
+                      <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                          <span>🚑</span> Ambulances:
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setModalResources(r => ({ ...r, ambulances: Math.max(1, (r.ambulances || 1) - 1) }))}
+                            className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
+                          >-</button>
+                          <span className="text-xs font-bold font-mono w-5 text-center">{modalResources.ambulances}</span>
+                          <button
+                            type="button"
+                            onClick={() => setModalResources(r => ({ ...r, ambulances: (r.ambulances || 1) + 1 }))}
+                            className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
+                          >+</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Water Tankers */}
+                    {selectedTemplate.default_resources.tankers !== undefined && (
+                      <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                          <span>🚰</span> Tankers:
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setModalResources(r => ({ ...r, tankers: Math.max(1, (r.tankers || 2) - 2) }))}
+                            className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
+                          >-</button>
+                          <span className="text-xs font-bold font-mono w-5 text-center">{modalResources.tankers}</span>
+                          <button
+                            type="button"
+                            onClick={() => setModalResources(r => ({ ...r, tankers: (r.tankers || 2) + 2 }))}
+                            className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
+                          >+</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Target Zone & Status */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-slate-700">Sector / Zone</label>
+                    <select
+                      value={modalZone}
+                      onChange={e => setModalZone(e.target.value)}
+                      className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium"
+                    >
+                      <option value="zone-bet">Bet Kopargaon (Godavari Basin)</option>
+                      <option value="zone-market">Main Town & Market</option>
+                      <option value="zone-rural-north">North Rural (Sanjivani/Kolpewadi)</option>
+                      <option value="zone-rural-south">South Drylands (Pohegaon)</option>
+                      <option value="all-taluka">Entire Kopargaon Taluka</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-slate-700">Deployment Status</label>
+                    <select
+                      value={modalStatus}
+                      onChange={e => setModalStatus(e.target.value as any)}
+                      className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium"
+                    >
+                      <option value="action_taken">✓ Action Completed / Deployed</option>
+                      <option value="in_field">⚡ In Field (Mobilizing)</option>
+                      <option value="acknowledged">● Standby / Acknowledged</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Optional Note */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-bold text-slate-700">Officer Live Note (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Unit positioned at Old Bridge ghats with VHF radios."
+                    value={modalCustomNotes}
+                    onChange={e => setModalCustomNotes(e.target.value)}
+                    className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTemplate(null)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deploying}
+                  onClick={handleExecuteQuickDeploy}
+                  className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {deploying ? (
+                    'Broadcasting Action...'
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-base text-amber-400">bolt</span>
+                      <span>Confirm & Broadcast Live Action</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
