@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { calculateFloodTimeline } from "../utils/floodEngine";
 import { HazardType, RiskLevel, RiskPrediction, Shelter } from '../types';
 import { HAZARD_PALETTES } from './HazardPalettes';
-import MapLayer from '../MapLayer';
+import MapLayer, { MapBaseStyle } from '../MapLayer';
 import { KOPARGAON_LANDMARKS, LocalLandmark } from '../landmarks';
 import { SpeechEngine } from '../utils/speech';
 
@@ -36,9 +36,19 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
   const [selectedLayerFilter, setSelectedLayerFilter] = useState<'all' | 'flood' | 'shelters' | 'heat'>('all');
+  const [mapBaseStyle, setMapBaseStyle] = useState<MapBaseStyle>(() => {
+    return (localStorage.getItem('kopargaon_map_mode') as MapBaseStyle) || 'streets';
+  });
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+
+  const handleBaseStyleChange = (mode: MapBaseStyle) => {
+    setMapBaseStyle(mode);
+    try {
+      localStorage.setItem('kopargaon_map_mode', mode);
+    } catch {}
+  };
 
   useEffect(() => {
     const unsub = SpeechEngine.subscribe(setIsSpeaking);
@@ -232,6 +242,7 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
           onSelectLandmark={lm => setSelectedLandmark(lm)}
           selectedLayerFilter={selectedLayerFilter}
           userLocation={userLocation}
+          mapBaseStyle={mapBaseStyle}
         />
       </div>
 
@@ -313,31 +324,74 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
           </div>
         </div>
 
-        {/* Vector Layers Selector Ribbon */}
-        <div className="pointer-events-auto flex items-center gap-1 p-1 bg-slate-900/80 text-white rounded-xl shadow-md backdrop-blur-md overflow-x-auto no-scrollbar max-w-fit">
-          <span className="text-[10px] uppercase font-bold text-slate-400 px-2 flex items-center gap-1">
-            <span className="material-symbols-outlined text-xs">layers</span>
-            {lang === 'mr' ? 'नकाशा स्तर:' : 'GIS Layer:'}
-          </span>
-          {[
-            { id: 'all', label_en: 'All Layers', label_mr: 'सर्व स्तर' },
-            { id: 'flood', label_en: 'Flood Inundation Zones', label_mr: 'गोदावरी पूर पट्टा' },
-            { id: 'shelters', label_en: 'Relief Shelters', label_mr: 'निवारा केंद्रे' },
-            { id: 'heat', label_en: 'Heat Belts', label_mr: 'उष्णता पट्टे' }
-          ].map(layer => (
-            <button
-              key={layer.id}
-              onClick={() => setSelectedLayerFilter(layer.id as any)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all whitespace-nowrap ${
-                selectedLayerFilter === layer.id
-                  ? 'bg-sky-500 text-white shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              {lang === 'mr' ? layer.label_mr : layer.label_en}
-            </button>
-          ))}
+        {/* Dual Control Ribbon: GIS Vector Layers + Base Map View Mode (Streets vs Satellite vs Terrain) */}
+        <div className="pointer-events-auto flex flex-wrap items-center justify-between gap-2">
+          {/* Vector Layers Selector */}
+          <div className="flex items-center gap-1 p-1 bg-slate-900/85 text-white rounded-xl shadow-md backdrop-blur-md overflow-x-auto no-scrollbar">
+            <span className="text-[10px] uppercase font-bold text-slate-400 px-2 flex items-center gap-1">
+              <span className="material-symbols-outlined text-xs">layers</span>
+              {lang === 'mr' ? 'स्तर:' : 'Layer:'}
+            </span>
+            {[
+              { id: 'all', label_en: 'All Layers', label_mr: 'सर्व स्तर' },
+              { id: 'flood', label_en: 'Flood Inundation', label_mr: 'गोदावरी पूर' },
+              { id: 'shelters', label_en: 'Shelters', label_mr: 'निवारा केंद्रे' },
+              { id: 'heat', label_en: 'Heat Belts', label_mr: 'उष्णता' }
+            ].map(layer => (
+              <button
+                key={layer.id}
+                onClick={() => setSelectedLayerFilter(layer.id as any)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all whitespace-nowrap ${
+                  selectedLayerFilter === layer.id
+                    ? 'bg-sky-500 text-white shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                {lang === 'mr' ? layer.label_mr : layer.label_en}
+              </button>
+            ))}
+          </div>
+
+          {/* Base Map Style Switcher (Streets / Satellite / Terrain) */}
+          <div className="flex items-center gap-1 p-1 bg-slate-900/85 text-white rounded-xl shadow-md backdrop-blur-md">
+            <span className="text-[10px] uppercase font-bold text-slate-400 px-2 flex items-center gap-1">
+              <span className="material-symbols-outlined text-xs">map</span>
+              {lang === 'mr' ? 'दृश्य:' : 'Map:'}
+            </span>
+            {[
+              { id: 'streets', label_en: 'Streets', label_mr: 'नकाशा', icon: 'map' },
+              { id: 'satellite', label_en: 'Satellite', label_mr: 'उपग्रह', icon: 'satellite_alt' },
+              { id: 'terrain', label_en: 'Terrain', label_mr: 'भूरचना', icon: 'terrain' }
+            ].map(styleOpt => (
+              <button
+                key={styleOpt.id}
+                id={`basemap-mode-${styleOpt.id}`}
+                onClick={() => handleBaseStyleChange(styleOpt.id as MapBaseStyle)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                  mapBaseStyle === styleOpt.id
+                    ? styleOpt.id === 'satellite'
+                      ? 'bg-emerald-500 text-white shadow-sm font-bold'
+                      : 'bg-indigo-600 text-white shadow-sm font-bold'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+                title={styleOpt.id === 'satellite' ? 'High-Resolution Satellite Imagery' : undefined}
+              >
+                <span className="material-symbols-outlined text-xs">{styleOpt.icon}</span>
+                <span>{lang === 'mr' ? styleOpt.label_mr : styleOpt.label_en}</span>
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Satellite Mode Active Tag Banner */}
+        {mapBaseStyle === 'satellite' && (
+          <div className="pointer-events-auto flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-emerald-500/40 text-emerald-300 text-[11px] shadow-lg backdrop-blur-md animate-fadeIn max-w-fit">
+            <span className="flex items-center gap-1.5 font-bold">
+              <span className="material-symbols-outlined text-sm text-emerald-400 animate-pulse">satellite_alt</span>
+              {lang === 'mr' ? 'थेट उपग्रह छायाचित्र दृश्य सक्रिय (ESRI World Imagery)' : 'High-Res Earth Satellite View Active (ESRI World Imagery)'}
+            </span>
+          </div>
+        )}
 
         {/* User Geolocation Proximity Alert Card if GPS is active */}
         {userLocation && nearestShelter && (

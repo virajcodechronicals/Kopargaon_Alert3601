@@ -171,7 +171,7 @@ export const GODAVARI_RIVER_GEOJSON: GeoJSON.Feature = {
   }
 };
 // CARTO Free Tile Styles (Positron light style for calm citizen-comprehensible safety map)
-const CARTO_LIGHT_STYLE: maplibregl.StyleSpecification = {
+export const CARTO_LIGHT_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
     'carto-light': {
@@ -197,6 +197,93 @@ const CARTO_LIGHT_STYLE: maplibregl.StyleSpecification = {
   ]
 };
 
+// High-Resolution ESRI World Imagery Satellite Tiles + Crisp Voyager Road/Place Labels
+export const SATELLITE_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    'esri-satellite': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: '&copy; Esri, Maxar, Earthstar Geographics, USDA, USGS, AeroGRID, IGN'
+    },
+    'satellite-labels': {
+      type: 'raster',
+      tiles: [
+        'https://a.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}@2x.png',
+        'https://b.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}@2x.png',
+        'https://c.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}@2x.png',
+        'https://d.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}@2x.png'
+      ],
+      tileSize: 256,
+      maxzoom: 20
+    }
+  },
+  layers: [
+    {
+      id: 'esri-satellite-layer',
+      type: 'raster',
+      source: 'esri-satellite',
+      minzoom: 0,
+      maxzoom: 19
+    },
+    {
+      id: 'satellite-labels-layer',
+      type: 'raster',
+      source: 'satellite-labels',
+      minzoom: 0,
+      maxzoom: 20
+    }
+  ]
+};
+
+// Shaded Topography and Contour Terrain Tiles
+export const TERRAIN_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    'opentopo-tiles': {
+      type: 'raster',
+      tiles: [
+        'https://a.tile.opentopomap.org/{z}/{x}/{y}.png',
+        'https://b.tile.opentopomap.org/{z}/{x}/{y}.png',
+        'https://c.tile.opentopomap.org/{z}/{x}/{y}.png'
+      ],
+      tileSize: 256,
+      maxzoom: 17,
+      attribution: '&copy; OpenStreetMap contributors, SRTM | &copy; OpenTopoMap'
+    }
+  },
+  layers: [
+    {
+      id: 'opentopo-layer',
+      type: 'raster',
+      source: 'opentopo-tiles',
+      minzoom: 0,
+      maxzoom: 17
+    }
+  ]
+};
+
+export type MapBaseStyle = 'streets' | 'satellite' | 'terrain';
+
+interface MapLayerProps {
+  activeHazard: HazardType;
+  predictions: RiskPrediction[];
+  shelters: Shelter[];
+  timeOffset: number;
+  dischargeRate: number;
+  lang: 'en' | 'mr';
+  incidents?: any[];
+  onSelectZone: (zone: { id: string; name: string }, prediction: RiskPrediction | null) => void;
+  onSelectLandmark?: (landmark: LocalLandmark) => void;
+  selectedLayerFilter?: 'all' | 'flood' | 'shelters' | 'heat';
+  userLocation?: { lat: number; lng: number } | null;
+  mapBaseStyle?: MapBaseStyle;
+}
+
 export default function MapLayer({
   activeHazard,
   predictions,
@@ -208,7 +295,8 @@ export default function MapLayer({
   onSelectZone,
   onSelectLandmark,
   selectedLayerFilter = 'all',
-  userLocation = null
+  userLocation = null,
+  mapBaseStyle = 'streets'
 }: MapLayerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -228,13 +316,27 @@ export default function MapLayer({
     return () => cancelAnimationFrame(animId);
   }, []);
 
+  const getStyleObject = (mode: MapBaseStyle) => {
+    switch (mode) {
+      case 'satellite':
+        return SATELLITE_STYLE;
+      case 'terrain':
+        return TERRAIN_STYLE;
+      case 'streets':
+      default:
+        return CARTO_LIGHT_STYLE;
+    }
+  };
+
   // Initialize MapLibre GL JS (Free, Open-Source, 0 Billing)
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
+    const initialStyle = getStyleObject(mapBaseStyle);
+
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: CARTO_LIGHT_STYLE,
+      style: initialStyle,
       center: [74.4760, 19.8880], // Kopargaon Center
       zoom: 12.8,
       pitch: 35, // 3D perspective
@@ -267,6 +369,13 @@ export default function MapLayer({
       map.remove();
     };
   }, []);
+
+  // Update base map style dynamically when user changes base style (Streets / Satellite / Terrain)
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const targetStyle = getStyleObject(mapBaseStyle);
+    mapRef.current.setStyle(targetStyle);
+  }, [mapBaseStyle]);
 
   // Compute Animated Heatmap Points for Heatwave (Waves Effect)
   const heatmapData = React.useMemo(() => {
