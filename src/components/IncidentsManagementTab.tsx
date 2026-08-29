@@ -14,9 +14,11 @@ interface Incident {
   longitude: number;
   photo_url: string | null;
   ai_severity_score: number;
-  status: 'pending_verification' | 'verified' | 'rejected';
+  status: 'pending_verification' | 'verified' | 'rejected' | 'ESCALATED_TO_MAIN_ADMIN';
   created_at: string;
   verified_at?: string;
+  assigned_desk?: string;
+  sla_breached?: boolean;
 }
 
 interface Props {
@@ -24,10 +26,13 @@ interface Props {
   currentUser: any;
 }
 
+const DEMO_SLA_SECONDS = 60; // 60 seconds SLA timer for testing/demo mode
+
 export const IncidentsManagementTab: React.FC<Props> = ({ onShowToast, currentUser }) => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
 
   const fetchIncidents = async () => {
     try {
@@ -45,10 +50,52 @@ export const IncidentsManagementTab: React.FC<Props> = ({ onShowToast, currentUs
     }
   };
 
+  // Background SLA check loop & Auto-Escalation to Tahsildar Main Admin
+  const checkAndEscalate = () => {
+    const current = Date.now();
+    setNow(current);
+
+    const breachedIds: string[] = [];
+
+    setIncidents(prev => {
+      let hasChanges = false;
+      const nextIncidents = prev.map(item => {
+        if (item.status === 'pending_verification' || !item.status) {
+          const ageSeconds = Math.floor((current - new Date(item.created_at).getTime()) / 1000);
+          if (ageSeconds >= DEMO_SLA_SECONDS && !item.sla_breached) {
+            breachedIds.push(item.id);
+            hasChanges = true;
+            return {
+              ...item,
+              status: 'ESCALATED_TO_MAIN_ADMIN' as const,
+              assigned_desk: 'TAHSILDAR_DESK (Main Admin)',
+              sla_breached: true
+            };
+          }
+        }
+        return item;
+      });
+      return hasChanges ? nextIncidents : prev;
+    });
+
+    if (breachedIds.length > 0) {
+      setTimeout(() => {
+        breachedIds.forEach(id => {
+          const shortId = id.includes('-') ? id.split('-')[1] : id;
+          onShowToast(`🚨 SLA BREACH ALERT: Incident #${shortId} escalated to TAHSILDAR_DESK (Main Admin)!`);
+        });
+      }, 0);
+    }
+  };
+
   useEffect(() => {
     fetchIncidents();
-    const interval = setInterval(fetchIncidents, 10000);
-    return () => clearInterval(interval);
+    const fetchInterval = setInterval(fetchIncidents, 10000);
+    const slaInterval = setInterval(checkAndEscalate, 1000);
+    return () => {
+      clearInterval(fetchInterval);
+      clearInterval(slaInterval);
+    };
   }, []);
 
   const handleVerify = async (id: string, action: 'verify' | 'reject') => {
@@ -74,20 +121,46 @@ export const IncidentsManagementTab: React.FC<Props> = ({ onShowToast, currentUs
   };
 
   const pendingIncidents = incidents.filter(i => i.status === 'pending_verification' || !i.status);
+  const escalatedIncidents = incidents.filter(i => i.status === 'ESCALATED_TO_MAIN_ADMIN');
   const verifiedIncidents = incidents.filter(i => i.status === 'verified');
   const rejectedIncidents = incidents.filter(i => i.status === 'rejected');
 
   if (loading) {
-    return <div className="p-10 text-center text-slate-500">Loading citizen reports...</div>;
+    return <div className="p-10 text-center text-slate-500">Loading citizen reports & SLA timers...</div>;
   }
 
   return (
     <div className="space-y-6">
+      {/* SLA Auto-Escalated Banner if any exist */}
+      {escalatedIncidents.length > 0 && (
+        <div className="p-4 rounded-3xl bg-rose-500 text-white shadow-xl flex items-center justify-between gap-3 animate-pulse">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-3xl">warning</span>
+            <div>
+              <div className="font-bold text-sm">
+                SLA BREACH ALERT: {escalatedIncidents.length} Incident(s) Auto-Escalated to TAHSILDAR DESK
+              </div>
+              <div className="text-xs text-rose-100">
+                Ward Desk response SLA expired. Re-routed with highest priority to Tahsildar Main Admin.
+              </div>
+            </div>
+          </div>
+          <span className="px-3 py-1 rounded-xl bg-white text-rose-700 text-xs font-mono font-bold uppercase shadow-sm">
+            SLA BREACH
+          </span>
+        </div>
+      )}
+
+      {/* Pending & Escalated Incident Queue */}
       <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-slate-900 text-lg">Pending Citizen Reports ({pendingIncidents.length})</h3>
-            <p className="text-xs text-slate-500">Verify ground-truth reports from citizens before dispatching authorities.</p>
+            <h3 className="font-bold text-slate-900 text-lg">
+              Active Citizen Reports ({pendingIncidents.length + escalatedIncidents.length})
+            </h3>
+            <p className="text-xs text-slate-500">
+              Live SLA Countdown Engine (60s demo threshold for auto-escalation to Tahsildar)
+            </p>
           </div>
           <button
             onClick={fetchIncidents}
@@ -98,7 +171,7 @@ export const IncidentsManagementTab: React.FC<Props> = ({ onShowToast, currentUs
           </button>
         </div>
 
-        {pendingIncidents.length === 0 ? (
+        {[...escalatedIncidents, ...pendingIncidents].length === 0 ? (
           <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-100">
             <span className="material-symbols-outlined text-4xl text-emerald-400 mb-2">check_circle</span>
             <p className="text-sm font-bold text-slate-700">All caught up!</p>
@@ -107,15 +180,23 @@ export const IncidentsManagementTab: React.FC<Props> = ({ onShowToast, currentUs
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <AnimatePresence>
-              {pendingIncidents.map(incident => {
+              {[...escalatedIncidents, ...pendingIncidents].map(incident => {
                 const palette = HAZARD_PALETTES[incident.hazard] || HAZARD_PALETTES.flood;
+                const elapsedSec = Math.floor((now - new Date(incident.created_at).getTime()) / 1000);
+                const remainingSec = Math.max(0, DEMO_SLA_SECONDS - elapsedSec);
+                const isEscalated = incident.status === 'ESCALATED_TO_MAIN_ADMIN' || remainingSec === 0;
+
                 return (
                   <motion.div
                     key={incident.id}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+                    className={`border rounded-2xl p-4 transition-shadow flex flex-col justify-between ${
+                      isEscalated
+                        ? 'border-rose-300 bg-rose-50/50 shadow-md'
+                        : 'border-slate-200 bg-white shadow-sm hover:shadow-md'
+                    }`}
                   >
                     <div>
                       <div className="flex items-start justify-between gap-2 mb-3">
@@ -126,10 +207,18 @@ export const IncidentsManagementTab: React.FC<Props> = ({ onShowToast, currentUs
                           <span className="material-symbols-outlined text-sm">{palette.symbol}</span>
                           {incident.hazard}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-500">
-                          {new Date(incident.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+
+                        {isEscalated ? (
+                          <span className="px-2 py-0.5 rounded-lg bg-rose-600 text-white text-[10px] font-mono font-bold uppercase">
+                            SLA BREACH - TAHSILDAR
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 text-[10px] font-mono font-bold">
+                            SLA: {remainingSec}s
+                          </span>
+                        )}
                       </div>
+
                       <p className="text-sm font-bold text-slate-800 leading-snug mb-2">
                         "{incident.description}"
                       </p>
@@ -142,13 +231,15 @@ export const IncidentsManagementTab: React.FC<Props> = ({ onShowToast, currentUs
 
                       <div className="flex items-center gap-2 mt-3 text-xs text-slate-600 font-mono">
                         <span className="material-symbols-outlined text-sm text-slate-400">location_on</span>
-                        <span className="truncate">{incident.latitude.toFixed(4)}, {incident.longitude.toFixed(4)}</span>
+                        <span className="truncate">
+                          {typeof incident?.latitude === 'number' ? incident.latitude.toFixed(4) : '19.8880'}, {typeof incident?.longitude === 'number' ? incident.longitude.toFixed(4) : '74.4750'}
+                        </span>
                       </div>
 
-                      <div className="mt-2 flex items-center gap-2 text-xs">
-                        <span className="text-slate-500">AI Severity Score:</span>
-                        <span className={`font-bold ${incident.ai_severity_score >= 0.8 ? 'text-rose-600' : incident.ai_severity_score >= 0.5 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                          {incident.ai_severity_score.toFixed(2)} / 1.0
+                      <div className="mt-2 flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Target Desk:</span>
+                        <span className="font-bold text-slate-800 font-mono text-[11px]">
+                          {incident.assigned_desk || 'WARD_DESK_FIELD'}
                         </span>
                       </div>
                     </div>
@@ -188,7 +279,7 @@ export const IncidentsManagementTab: React.FC<Props> = ({ onShowToast, currentUs
                   <th className="p-3">ID / DATE</th>
                   <th className="p-3">HAZARD</th>
                   <th className="p-3">DETAILS</th>
-                  <th className="p-3">AI SCORE</th>
+                  <th className="p-3">SLA STATUS</th>
                   <th className="p-3">STATUS</th>
                 </tr>
               </thead>
@@ -203,7 +294,13 @@ export const IncidentsManagementTab: React.FC<Props> = ({ onShowToast, currentUs
                     <td className="p-3">
                       <div className="text-slate-800 font-sans truncate max-w-xs">{incident.description}</div>
                     </td>
-                    <td className="p-3 font-bold text-slate-600">{incident.ai_severity_score.toFixed(2)}</td>
+                    <td className="p-3">
+                      {incident.sla_breached ? (
+                        <span className="text-rose-700 font-bold">BREACHED</span>
+                      ) : (
+                        <span className="text-emerald-700 font-bold">WITHIN_SLA</span>
+                      )}
+                    </td>
                     <td className="p-3">
                       {incident.status === 'verified' ? (
                         <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">Verified</span>

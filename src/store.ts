@@ -246,8 +246,7 @@ export const store = {
       const data: LiveTelemetry = await res.json();
       await localforage.setItem('live_telemetry_cache', data);
       return data;
-    } catch (err) {
-      console.warn('Fetching live telemetry failed, falling back to cache', err);
+    } catch {
       const cached = await localforage.getItem<LiveTelemetry>('live_telemetry_cache');
       if (cached) return cached;
       return {

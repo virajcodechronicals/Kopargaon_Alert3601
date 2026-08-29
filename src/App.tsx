@@ -14,6 +14,7 @@ import { SOSBeaconModal } from './components/SOSBeaconModal';
 import { ConcernedAuthoritiesDirectory } from './components/ConcernedAuthoritiesDirectory';
 import { PersistentEmergencyBanner } from './components/PersistentEmergencyBanner';
 import { EscalationPackageModal } from './components/EscalationPackageModal';
+import { RumorBusterHub } from './components/RumorBusterHub';
 import { HazardType, RiskPrediction, Alert, Shelter, EmergencyContact, AuthorityContact } from './types';
 import { HAZARD_PALETTES, getHazardTonalStyle } from './components/HazardPalettes';
 
@@ -35,6 +36,7 @@ export default function App() {
   const [showReportModal, setShowReportModal] = useState<boolean>(false);
   const [showSOSModal, setShowSOSModal] = useState<boolean>(false);
   const [showEscalationModal, setShowEscalationModal] = useState<boolean>(false);
+  const [showRumorBuster, setShowRumorBuster] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => !localStorage.getItem('onboarding_seen'));
   const [timeOffsetHours, setTimeOffsetHours] = useState<number>(0);
   const [lang, setLang] = useState<'en' | 'mr'>('en');
@@ -274,6 +276,7 @@ export default function App() {
             <button
               id="app-logout-btn"
               onClick={logout}
+              style={{ width: '72.4403px' }}
               className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-2xl text-xs font-semibold transition-all shadow-sm shrink-0 ${
                 user 
                   ? 'bg-white/95 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-700 hover:text-rose-700' 
@@ -284,7 +287,7 @@ export default function App() {
               <span className="material-symbols-outlined text-base">
                 {user ? 'logout' : 'login'}
               </span>
-              <span className="hidden sm:inline">
+              <span className="hidden sm:inline" style={{ fontSize: '7px' }}>
                 {user ? (lang === 'mr' ? 'लॉगआउट' : 'Logout') : (lang === 'mr' ? 'लॉगिन' : 'Log in')}
               </span>
             </button>
@@ -487,6 +490,19 @@ export default function App() {
           <span>{lang === 'mr' ? 'घटना नोंदवा' : 'Report Incident'}</span>
         </motion.button>
 
+        {/* Rumor Buster Shield Button */}
+        <motion.button
+          id="rumor-buster-fab"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowRumorBuster(true)}
+          className="pointer-events-auto px-3.5 py-2.5 rounded-2xl font-bold text-xs tracking-wide text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-300 shadow-md flex items-center gap-1.5 transition-all"
+          title={lang === 'mr' ? 'अफवा निवारण कक्ष' : 'Rumor Buster Shield'}
+        >
+          <span className="material-symbols-outlined text-lg text-rose-700">gavel</span>
+          <span>{lang === 'mr' ? 'अफवा निवारण' : 'Rumor Buster'}</span>
+        </motion.button>
+
         {/* AI Assistant FAB */}
         <motion.button
           id="ai-assistant-fab"
@@ -571,6 +587,16 @@ export default function App() {
           <EscalationPackageModal
             lang={lang}
             onClose={() => setShowEscalationModal(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Rumor Buster Fact Check Shield Modal */}
+      <AnimatePresence>
+        {showRumorBuster && (
+          <RumorBusterHub
+            lang={lang}
+            onClose={() => setShowRumorBuster(false)}
           />
         )}
       </AnimatePresence>

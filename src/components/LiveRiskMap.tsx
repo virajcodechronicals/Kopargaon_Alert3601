@@ -97,16 +97,21 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
 
   // Nearest Shelter
   const nearestShelter = useMemo(() => {
-    if (!userLocation || shelters.length === 0) return null;
-    let closest = shelters[0];
+    if (!userLocation || typeof userLocation?.lat !== 'number' || typeof userLocation?.lng !== 'number' || !shelters || shelters.length === 0) return null;
+    let closest: Shelter | null = null;
     let minD = 99999;
     shelters.forEach(s => {
-      const d = parseFloat(calculateDistanceKm(userLocation.lat, userLocation.lng, s.location.lat, s.location.lng));
-      if (d < minD) {
-        minD = d;
-        closest = s;
+      const lat = s?.location?.lat;
+      const lng = s?.location?.lng;
+      if (typeof lat === 'number' && typeof lng === 'number') {
+        const d = parseFloat(calculateDistanceKm(userLocation.lat, userLocation.lng, lat, lng));
+        if (d < minD) {
+          minD = d;
+          closest = s;
+        }
       }
     });
+    if (!closest || !closest.location || typeof closest.location.lat !== 'number' || typeof closest.location.lng !== 'number') return null;
     return { shelter: closest, distanceKm: minD };
   }, [userLocation, shelters]);
 
@@ -254,7 +259,10 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
       {/* 2. Top Controls & Hazard FilterChips */}
       <div className="absolute top-16 inset-x-3 sm:inset-x-4 z-30 flex flex-col gap-2.5 pointer-events-none max-w-4xl mx-auto">
         {/* FilterChip Row */}
-        <div className="pointer-events-auto flex items-center justify-between gap-1.5 p-1.5 rounded-2xl bg-white/95 border border-slate-200 shadow-lg backdrop-blur-md overflow-x-auto no-scrollbar">
+        <div 
+          className="pointer-events-auto flex items-center justify-between gap-1.5 p-1.5 rounded-2xl bg-white/95 border border-slate-200 shadow-lg backdrop-blur-md overflow-x-auto no-scrollbar"
+          style={{ paddingLeft: '6px', height: '29.806800000000003px', marginTop: '30px' }}
+        >
           <div className="flex items-center gap-1">
             {(['flood', 'drought', 'heatwave', 'unseasonal'] as HazardType[]).map(h => {
               const isSelected = activeHazard === h;
@@ -272,7 +280,8 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
                   }`}
                   style={{
                     backgroundColor: isSelected ? p.tone50 : 'transparent',
-                    color: isSelected ? '#ffffff' : undefined
+                    color: isSelected ? '#ffffff' : undefined,
+                    height: h === 'flood' ? '24px' : undefined
                   }}
                 >
                   <span
@@ -293,6 +302,7 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
             <button
               onClick={handleLocateMe}
               disabled={isLocating}
+              style={{ height: '24.8125px' }}
               className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all shadow-sm border shrink-0 ${
                 userLocation
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300'
@@ -312,6 +322,7 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
             <button
               id="voice-readout-hud-btn"
               onClick={handleVoiceReadout}
+              style={{ height: '25.8125px' }}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm shrink-0 border ${
                 isSpeaking
                   ? 'bg-amber-500 text-slate-950 border-amber-400 animate-pulse'
@@ -358,7 +369,10 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
           </div>
 
           {/* Base Map Style Switcher (Streets / Satellite / Terrain / Windy Weather) */}
-          <div className="flex items-center gap-1 p-1 bg-slate-900/85 text-white rounded-xl shadow-md backdrop-blur-md overflow-x-auto no-scrollbar">
+          <div 
+            className="flex items-center gap-1 p-1 bg-slate-900/85 text-white rounded-xl shadow-md backdrop-blur-md overflow-x-auto no-scrollbar"
+            style={{ marginTop: '312px', height: '31.619300000000003px' }}
+          >
             <span className="text-[10px] uppercase font-bold text-slate-400 px-2 flex items-center gap-1">
               <span className="material-symbols-outlined text-xs">map</span>
               {lang === 'mr' ? 'दृश्य:' : 'Map:'}
@@ -373,6 +387,15 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
                 key={styleOpt.id}
                 id={`basemap-mode-${styleOpt.id}`}
                 onClick={() => handleBaseStyleChange(styleOpt.id as MapBaseStyle)}
+                style={{
+                  height: styleOpt.id === 'streets'
+                    ? '23.994300000000003px'
+                    : styleOpt.id === 'satellite'
+                    ? '28.8125px'
+                    : styleOpt.id === 'terrain'
+                    ? '26.8125px'
+                    : undefined
+                }}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                   mapBaseStyle === styleOpt.id
                     ? styleOpt.id === 'satellite'
@@ -412,7 +435,7 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
         )}
 
         {/* User Geolocation Proximity Alert Card if GPS is active */}
-        {userLocation && nearestShelter && (
+        {userLocation && nearestShelter?.shelter?.location?.lat != null && nearestShelter?.shelter?.location?.lng != null && (
           <div className="pointer-events-auto p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 shadow-lg backdrop-blur-md flex items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
@@ -470,7 +493,7 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
               marginTop: '0px',
               marginBottom: '57px',
               width: '574.994px',
-              height: '67.7983px'
+              height: '147.79829999999998px'
             }}
           >
             {/* Rule 1 & Rule 3: Color + Icon + Words together; Anchored to places people know */}
@@ -619,8 +642,14 @@ export const LiveRiskMap: React.FC<LiveRiskMapProps> = ({
 
       {/* 5. Time-Scrub Slider (Now -> +72h) */}
       <div className="absolute bottom-20 inset-x-4 sm:inset-x-6 max-w-xl mx-auto z-30 pointer-events-auto">
-        <div className="bg-white/95 border border-slate-200 p-3.5 rounded-2xl shadow-xl flex flex-col gap-2 backdrop-blur-md">
-          <div className="flex items-center justify-between text-xs font-semibold">
+        <div 
+          className="bg-white/95 border border-slate-200 p-3.5 rounded-2xl shadow-xl flex flex-col gap-2 backdrop-blur-md"
+          style={{ height: '73.7926px' }}
+        >
+          <div 
+            className="flex items-center justify-between text-xs font-semibold"
+            style={{ fontSize: '9px', marginTop: '-11px', height: '24.0057px' }}
+          >
             <div className="flex items-center gap-1.5 text-slate-700">
               <span className="material-symbols-outlined text-base" style={{ color: palette.baseColor }}>
                 timelapse

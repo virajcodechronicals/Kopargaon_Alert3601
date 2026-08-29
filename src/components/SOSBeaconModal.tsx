@@ -71,7 +71,9 @@ export const SOSBeaconModal: React.FC<SOSBeaconModalProps> = ({
     cattle_rescue: { en: 'Cattle / Livestock Stranded', mr: 'जनावरे / गोठा पुराच्या विळख्यात' }
   };
 
-  const mapsLink = `https://maps.google.com/?q=${coords.lat.toFixed(5)},${coords.coords_lng ? coords.coords_lng : coords.lng.toFixed(5)}`;
+  const safeLat = typeof coords?.lat === 'number' ? coords.lat.toFixed(5) : '19.89120';
+  const safeLng = typeof coords?.lng === 'number' ? coords.lng.toFixed(5) : '74.47890';
+  const mapsLink = `https://maps.google.com/?q=${safeLat},${safeLng}`;
   
   const generateSOSMessage = () => {
     const typeLabel = emergencyTypeLabels[emergencyType][lang];
@@ -80,14 +82,14 @@ export const SOSBeaconModal: React.FC<SOSBeaconModalProps> = ({
 प्रकार: ${typeLabel}
 नाव: ${userName || 'नागरिक'} | फोन: ${userPhone || 'उपलब्ध नाही'}
 📍 *माझे लाईव्ह स्थान:* ${mapsLink}
-(अक्षांश: ${coords.lat.toFixed(5)}, रेखांश: ${coords.lng.toFixed(5)})
+(अक्षांश: ${safeLat}, रेखांश: ${safeLng})
 कृपया तातडीने बचाव पथक (SDRF/अग्निशामक) पाठवा.`;
     }
     return `🚨 *URGENT DISASTER SOS BEACON (KOPARGAON)*
 Type: ${typeLabel}
 Name: ${userName || 'Citizen'} | Phone: ${userPhone || 'N/A'}
 📍 *Live GPS Pin:* ${mapsLink}
-(Lat: ${coords.lat.toFixed(5)}, Lng: ${coords.lng.toFixed(5)})
+(Lat: ${safeLat}, Lng: ${safeLng})
 Requesting immediate rescue dispatch to this location.`;
   };
 

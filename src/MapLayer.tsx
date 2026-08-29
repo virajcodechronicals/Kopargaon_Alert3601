@@ -568,13 +568,19 @@ export default function MapLayer({
       // 4. Shelter Pins Layer (Scatterplot)
       (selectedLayerFilter === 'all' || selectedLayerFilter === 'shelters') && new ScatterplotLayer({
         id: 'shelters-deck-layer',
-        data: shelters,
+        data: shelters || [],
         getPosition: (d: any) => {
-          if (d.location && typeof d.location.lng === 'number') {
+          if (d?.location && typeof d.location.lng === 'number' && typeof d.location.lat === 'number') {
             return [d.location.lng, d.location.lat];
           }
-          if (d.id === 'offline-1') return [74.478, 19.883];
-          if (d.id === 'offline-2') return [74.455, 19.878];
+          if (d && typeof d.lng === 'number' && typeof d.lat === 'number') {
+            return [d.lng, d.lat];
+          }
+          if (d && typeof d.longitude === 'number' && typeof d.latitude === 'number') {
+            return [d.longitude, d.latitude];
+          }
+          if (d?.id === 'offline-1') return [74.478, 19.883];
+          if (d?.id === 'offline-2') return [74.455, 19.878];
           return [74.492, 19.873];
         },
         getRadius: 10,
@@ -636,10 +642,13 @@ export default function MapLayer({
       }),
 
       // 7. Citizen Reported Incidents
-      (selectedLayerFilter === 'all' || selectedLayerFilter === 'flood') && incidents.length > 0 && new ScatterplotLayer({
+      (selectedLayerFilter === 'all' || selectedLayerFilter === 'flood') && incidents && incidents.length > 0 && new ScatterplotLayer({
         id: 'incidents-deck-layer',
         data: incidents,
-        getPosition: (d: any) => [d.longitude || 74.475, d.latitude || 19.888],
+        getPosition: (d: any) => [
+          typeof d?.longitude === 'number' ? d.longitude : (d?.lng || 74.475),
+          typeof d?.latitude === 'number' ? d.latitude : (d?.lat || 19.888)
+        ],
         getRadius: 11,
         radiusUnits: 'pixels',
         getFillColor: [239, 68, 68, 240],
@@ -650,10 +659,10 @@ export default function MapLayer({
       }),
 
       // 8. Live GPS Pin
-      userLocation && new ScatterplotLayer({
+      userLocation && typeof userLocation?.lat === 'number' && typeof userLocation?.lng === 'number' && new ScatterplotLayer({
         id: 'user-gps-location',
         data: [userLocation],
-        getPosition: (d: any) => [d.lng, d.lat],
+        getPosition: (d: any) => [d?.lng ?? 74.4789, d?.lat ?? 19.8912],
         getRadius: 14,
         radiusUnits: 'pixels',
         getFillColor: [16, 185, 129, 255], // Emerald
