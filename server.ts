@@ -3039,12 +3039,13 @@ For all telemetry assessments, hazard predictions, offline dispatches, recovery 
     "actionPlanMr": "तातडीने संजीवनी मदत केंद्राकडे स्थलांतरित व्हा. जुन्या पुलाचा मार्ग वापरू नका."
   },
   "factCheckAndRumorBuster": {
-    "claimEvaluated": "Text of circulating rumor or claim",
+    "claimEvaluated": "Text of circulating rumor, unapproved farm advice, or reported incident",
     "verdict": "VERIFIED_TRUE" | "DEBUNKED_FALSE" | "UNVERIFIED_ANOMALY",
     "officialEvidenceEn": "Fact-based evidence citing WRD, IMD, or KVK Babhaleshwar",
-    "officialEvidenceMr": "अधिकृत पुरावा व सरकारी माहिती",
+    "officialEvidenceMr": "अधिकृत पुरावा, शासन निर्णय (GR) व वस्तुस्थिती",
     "officialSource": "Maharashtra Water Resources Dept / Kopargaon Tehsil Office / KVK",
-    "badgeStatus": "OFFICIAL_VERIFIED" | "CROWD_UNCONFIRMED" | "FLAGGED_MISINFORMATION"
+    "badgeStatus": "OFFICIAL_VERIFIED" | "CROWD_UNCONFIRMED" | "FLAGGED_MISINFORMATION",
+    "voiceReadoutMr": "शेतकरी मित्रांनो, ही माहिती खरी/खोटी असून अधिकृत सल्ला खालीलप्रमाणे आहे."
   },
   "offlinePayloads": {
     "bleGossipPacket": {
@@ -3233,7 +3234,8 @@ Signature Provided: ${signature ? "PRESENT" : "NONE"}`;
         officialEvidenceEn: `Telemetry cross-referenced against Godavari Old Bridge gauge (${riverStageM}m) and dam discharge (${dischargeCusecs} cusecs).`,
         officialEvidenceMr: `गोदावरी जुना पूल पातळी (${riverStageM} मी) व धरणातील विसर्ग (${dischargeCusecs} क्युसेक) यावरून पडताळणी पूर्ण.`,
         officialSource: "Maharashtra Water Resources Dept / Kopargaon Tehsil Control Room",
-        badgeStatus: "OFFICIAL_VERIFIED"
+        badgeStatus: "OFFICIAL_VERIFIED",
+        voiceReadoutMr: "नागरिक आणि शेतकरी मित्रांनो, गोदावरी नदी पातळी आणि पाण्याचा विसर्ग अधिकृत उपकरणांद्वारे पडताळलेला असून सर्व माहिती खरी आहे."
       },
       offlinePayloads: {
         bleGossipPacket: {
