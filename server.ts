@@ -2181,6 +2181,23 @@ Keep it to 2-3 short, clear paragraphs with actionable advice (e.g., evacuation 
     incident.verified_at = new Date().toISOString();
     incident.verified_by = req.user?.id || 'admin';
 
+    // If verified, dispatch notification to concerned authorities
+    if (incident.status === 'verified') {
+      try {
+        await notifyConcernedAuthoritiesCore({
+          hazard: incident.hazard,
+          severity: incident.ai_severity_score >= 0.8 ? 'CRITICAL' : (incident.ai_severity_score >= 0.5 ? 'HIGH' : 'MODERATE'),
+          zone_id: 'all-taluka',
+          trigger_event: `Citizen Incident Verified: ${incident.description.substring(0, 100)}`,
+          custom_message: `A citizen report for ${incident.hazard} has been verified by the SDM Admin. Coordinates: ${incident.latitude.toFixed(4)}, ${incident.longitude.toFixed(4)}. Description: ${incident.description}`,
+          initiated_by: req.user?.name || req.user?.email || "Control Room Incident Commander",
+          channels: ["SMS", "WhatsApp", "FCM Push"]
+        });
+      } catch (e) {
+        console.warn("Failed to notify authorities upon incident verification:", e);
+      }
+    }
+
     res.json({ success: true, incident, message: `Incident ${incident.status}` });
   });
 
