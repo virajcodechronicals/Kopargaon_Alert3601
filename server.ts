@@ -2022,7 +2022,7 @@ Keep it to 2-3 short, clear paragraphs with actionable advice (e.g., evacuation 
 
   // Proxy endpoint for Windy API using process.env.WINDY_API_KEY
   app.post("/api/v1/windy/forecast", async (req, res) => {
-    const apiKey = process.env.WINDY_API_KEY;
+    const apiKey = process.env.WINDY_API_KEY || "jy6wLX8DoR4VHOULLXEVQVgrs3QZyWia";
     if (!apiKey) {
       return res.status(400).json({ error: "WINDY_API_KEY is not configured in environment variables." });
     }
