@@ -5,6 +5,7 @@ import { HazardType, RiskLevel, Shelter } from '../types';
 import { HAZARD_PALETTES, getHazardTonalStyle } from './HazardPalettes';
 import { store } from '../store';
 import { safeFetchJson } from '../utils/api';
+import { IncidentsManagementTab } from './IncidentsManagementTab';
 import { AuthoritiesManagementTab } from './AuthoritiesManagementTab';
 
 type AuthorityTab = 'overview' | 'authorities' | 'flood' | 'drought' | 'heatwave' | 'unseasonal' | 'incidents' | 'alerts' | 'analytics';
@@ -359,54 +360,7 @@ export const AuthorityDashboard = () => {
 
           {/* 3. Incidents Tab */}
           {activeTab === 'incidents' && (
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-slate-900 text-lg">Citizen Ground-Truth Reports</h3>
-                <button
-                  onClick={() => exportTableCSV([
-                    { id: 'INC-101', hazard: 'flood', reporter: 'Citizen #402', lat: 19.887, lng: 74.476, score: 0.88, status: 'Verified' },
-                    { id: 'INC-102', hazard: 'unseasonal', reporter: 'Citizen #108', lat: 19.892, lng: 74.481, score: 0.75, status: 'Pending Action' }
-                  ], 'citizen_incidents')}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-mono text-slate-700 border border-slate-300 flex items-center gap-1"
-                >
-                  <span className="material-symbols-outlined text-sm">download</span>
-                  <span>Export CSV</span>
-                </button>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs font-mono">
-                  <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
-                    <tr>
-                      <th className="p-3">ID</th>
-                      <th className="p-3">HAZARD</th>
-                      <th className="p-3">SEVERITY</th>
-                      <th className="p-3">COORDINATES</th>
-                      <th className="p-3">AI SCORE</th>
-                      <th className="p-3">STATUS</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    <tr className="hover:bg-slate-50">
-                      <td className="p-3 text-sky-700 font-bold">#INC-883</td>
-                      <td className="p-3 uppercase">Flood</td>
-                      <td className="p-3 text-rose-600 font-bold">CRITICAL</td>
-                      <td className="p-3 text-slate-600">19.8871° N, 74.4762° E</td>
-                      <td className="p-3 text-emerald-700 font-bold">0.94 / 1.0</td>
-                      <td className="p-3"><span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">Verified</span></td>
-                    </tr>
-                    <tr className="hover:bg-slate-50">
-                      <td className="p-3 text-sky-700 font-bold">#INC-884</td>
-                      <td className="p-3 uppercase">Unseasonal</td>
-                      <td className="p-3 text-amber-700 font-bold">HIGH</td>
-                      <td className="p-3 text-slate-600">19.8912° N, 74.4820° E</td>
-                      <td className="p-3 text-emerald-700 font-bold">0.82 / 1.0</td>
-                      <td className="p-3"><span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-bold">Reviewing</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <IncidentsManagementTab onShowToast={showToast} currentUser={user} />
           )}
 
           {/* 4. Analytics Tab with Exportable Tables and Tabular Figure Typography */}

@@ -1178,7 +1178,7 @@ app.post([
   const authUser = LOCAL_AUTHORITY_ROSTER.find(a => {
     const uMatch = a.login_username && a.login_username.toLowerCase() === normId;
     const eMatch = a.email && a.email.toLowerCase() === normId;
-    const pMatch = a.phone && a.phone.replace(/[^0-9]/g, '') === rawDigits;
+    const pMatch = a.phone && rawDigits.length > 5 && a.phone.replace(/[^0-9]/g, '').includes(rawDigits);
     const idMatch = a.id && a.id.toLowerCase() === normId;
     const nameMatch = a.name && a.name.toLowerCase().includes(normId);
     return uMatch || eMatch || pMatch || idMatch || nameMatch;

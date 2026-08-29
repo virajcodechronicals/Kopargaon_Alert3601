@@ -1794,7 +1794,8 @@ Keep it to 2-3 short, clear paragraphs with actionable advice (e.g., evacuation 
       const foundAuth = LOCAL_AUTHORITY_ROSTER.find(a => {
         const uMatch = a.login_username && a.login_username.toLowerCase() === normId;
         const eMatch = a.email && a.email.toLowerCase() === normId;
-        const pMatch = a.phone && a.phone.replace(/[^0-9]/g, '') === normId.replace(/[^0-9]/g, '');
+        const rawDigits = normId.replace(/[^0-9]/g, '');
+        const pMatch = a.phone && rawDigits.length > 5 && a.phone.replace(/[^0-9]/g, '').includes(rawDigits);
         const idMatch = a.id && a.id.toLowerCase() === normId;
         const nameMatch = a.name && a.name.toLowerCase().includes(normId);
         return uMatch || eMatch || pMatch || idMatch || nameMatch;
@@ -2142,6 +2143,7 @@ Keep it to 2-3 short, clear paragraphs with actionable advice (e.g., evacuation 
         longitude: data.longitude,
         photo_url: data.photo_url || null,
         ai_severity_score: data.ai_severity_score !== undefined && data.ai_severity_score !== null ? data.ai_severity_score : (ai_severity_score || 0.6),
+        status: 'pending_verification',
         created_at: new Date().toISOString()
       };
       
@@ -2163,6 +2165,23 @@ Keep it to 2-3 short, clear paragraphs with actionable advice (e.g., evacuation 
       console.error("Incident report submission error:", e);
       res.status(500).json({ error: "Failed to submit incident report. Please try again." });
     }
+  });
+
+  app.get("/api/v1/admin/incidents", authenticate, requireAuthority, async (req: any, res: any) => {
+    res.json({ success: true, incidents: LOCAL_INCIDENTS });
+  });
+
+  app.post("/api/v1/admin/incidents/:id/verify", authenticate, requireAuthority, async (req: any, res: any) => {
+    const { action } = req.body || {};
+    const incidentId = req.params.id;
+    const incident = LOCAL_INCIDENTS.find(i => i.id === incidentId);
+    if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+    incident.status = action === 'reject' ? 'rejected' : 'verified';
+    incident.verified_at = new Date().toISOString();
+    incident.verified_by = req.user?.id || 'admin';
+
+    res.json({ success: true, incident, message: `Incident ${incident.status}` });
   });
 
   app.post("/api/v1/alerts/broadcast", authenticate, requireAuthority, async (req: any, res: any) => {
