@@ -2992,7 +2992,15 @@ When the primary database or local data store is wiped, corrupted, or unreadable
 
 ---
 
-### MODULE 6: DETERMINISTIC JSON OUTPUT SCHEMA
+### MODULE 6: OPERATIONAL SAFETY & EXECUTION CONSTRAINTS
+1. Strict Geographic Grounding: Evaluate river risk strictly against official Kopargaon gauge thresholds (14.50 m Warning, 16.50 m Danger).
+2. Character Limit Enforcement: All SMS payloads must remain ≤ 160 characters; LoRa radio hex payloads must remain ≤ 240 bytes.
+3. Automatic Escalation: Whenever riskLevel is CRITICAL, priority must automatically escalate to P1_LIFE_THREAT and evacuationRequired must be set to true.
+4. Tamper Quarantine: If signatureValid is false, suppress broadcast propagation immediately (set headline and action plan to QUARANTINED).
+
+---
+
+### MODULE 7: DETERMINISTIC JSON OUTPUT SCHEMA
 For all telemetry assessments, hazard predictions, offline dispatches, recovery executions, or security evaluations, strictly return a valid JSON object matching this schema:
 
 {
@@ -3101,12 +3109,25 @@ Signature Provided: ${signature ? "PRESENT" : "NONE"}`;
             parsed.authorityRouting.priority = "P1_LIFE_THREAT";
           }
 
-          // Security Audit default structure assurance
+          // Security Audit default structure assurance & Tamper Quarantine
+          const isSigValid = signature !== "INVALID" && (parsed.securityAudit?.signatureValid !== false);
           parsed.securityAudit = parsed.securityAudit || {
-            signatureValid: true,
-            tamperingDetected: false,
-            threatLevel: "NONE"
+            signatureValid: isSigValid,
+            tamperingDetected: !isSigValid,
+            threatLevel: isSigValid ? "NONE" : "SPOOF_ATTEMPT"
           };
+
+          if (!isSigValid) {
+            parsed.bilingualCAPBroadcast = {
+              headlineEn: "[QUARANTINED] Unverified Emergency Broadcast Suppressed",
+              headlineMr: "[विलगीकृत] असत्य किंवा असत्यापित आपत्कालीन संदेश रोखला",
+              actionPlanEn: "ALERT SUPPRESSED: Signature verification failed. Contact Tahsildar Desk directly.",
+              actionPlanMr: "सूचना रोखली: डिजिटल स्वाक्षरी पडताळणी अयशस्वी. तहसील कार्यालयाशी थेट संपर्क साधा."
+            };
+            parsed.securityAudit.signatureValid = false;
+            parsed.securityAudit.tamperingDetected = true;
+            parsed.securityAudit.threatLevel = "SPOOF_ATTEMPT";
+          }
 
           if (parsed.offlinePayloads?.directSms?.smsText && parsed.offlinePayloads.directSms.smsText.length > 160) {
             parsed.offlinePayloads.directSms.smsText = parsed.offlinePayloads.directSms.smsText.substring(0, 160);
