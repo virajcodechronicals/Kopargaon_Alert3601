@@ -61,6 +61,266 @@ const LOCAL_ALERTS = [
   }
 ];
 
+const LOCAL_AUTHORITY_ROSTER = [
+  {
+    id: "auth-sdm-1",
+    name: "Dr. Rajesh Shinde (IAS)",
+    designation: "Sub-Divisional Magistrate (SDM) & Incident Commander",
+    department: "Administration & Revenue",
+    phone: "+91-94220-10771",
+    emergency_phone: "1077",
+    email: "sdm.kopargaon@maharashtra.gov.in",
+    zone_id: "all-taluka",
+    hazard_responsibility: "all",
+    status: "on_duty",
+    login_username: "sdm.kopargaon",
+    login_password: "sdm@2026",
+    role: "admin",
+    access_level: "sub_admin",
+    notify_channels: { sms: true, whatsapp: true, voice_call: true, email: true, central_broadcast: true },
+    notes: "Lead Disaster Commander Kopargaon Sub-Division. Authority over Section 144, evacuation orders & flood gate coordination.",
+    created_at: "2026-08-01T00:00:00.000Z",
+    updated_at: "2026-08-01T00:00:00.000Z"
+  },
+  {
+    id: "auth-wrd-1",
+    name: "Er. Pravin Sonawane",
+    designation: "Executive Engineer (WRD Irrigation)",
+    department: "Water Resources & Irrigation",
+    phone: "+91-98501-44552",
+    emergency_phone: "02423-222888",
+    email: "ee.godavari.wrd@maharashtra.gov.in",
+    zone_id: "zone-bet",
+    hazard_responsibility: "flood",
+    status: "on_duty",
+    login_username: "wrd.godavari",
+    login_password: "wrd@2026",
+    role: "concerned_authority",
+    access_level: "department_head",
+    notify_channels: { sms: true, whatsapp: true, voice_call: true, email: true, central_broadcast: true },
+    notes: "Monitors Godavari riverbed discharge, upstream dam releases (Gangapur, Darna, Mukane) & flood gauge telemetry.",
+    created_at: "2026-08-01T00:00:00.000Z",
+    updated_at: "2026-08-01T00:00:00.000Z"
+  },
+  {
+    id: "auth-police-1",
+    name: "Insp. Vikram Patil",
+    designation: "Senior Police Inspector & SDRF Incharge",
+    department: "Police & Public Safety",
+    phone: "+91-98220-11200",
+    emergency_phone: "112",
+    email: "pi.kopargaon.city@mahapolice.gov.in",
+    zone_id: "zone-bet",
+    hazard_responsibility: "all",
+    status: "on_duty",
+    login_username: "police.kopargaon",
+    login_password: "police@112",
+    role: "concerned_authority",
+    access_level: "operational_field",
+    notify_channels: { sms: true, whatsapp: true, voice_call: true, email: true, central_broadcast: true },
+    notes: "Controls riverbank law & order, cordons submerged bridges, enforces Section 144 & assists SDRF boat operations.",
+    created_at: "2026-08-01T00:00:00.000Z",
+    updated_at: "2026-08-01T00:00:00.000Z"
+  },
+  {
+    id: "auth-fire-1",
+    name: "Shri. Nilesh Pawar",
+    designation: "Chief Fire Officer & Water Rescue Unit",
+    department: "Fire Brigade & Water Rescue",
+    phone: "+91-98233-10101",
+    emergency_phone: "101",
+    email: "fire.kopargaon.np@gov.in",
+    zone_id: "zone-bet",
+    hazard_responsibility: "flood",
+    status: "on_duty",
+    login_username: "fire.kopargaon",
+    login_password: "fire@101",
+    role: "concerned_authority",
+    access_level: "operational_field",
+    notify_channels: { sms: true, whatsapp: true, voice_call: true, email: true, central_broadcast: true },
+    notes: "Maintains 2 motorized swift-water boats, certified river divers, tree-fall clearance chainsaw units & life buoys.",
+    created_at: "2026-08-01T00:00:00.000Z",
+    updated_at: "2026-08-01T00:00:00.000Z"
+  },
+  {
+    id: "auth-health-1",
+    name: "Dr. Anita Gavhane",
+    designation: "Medical Superintendent (SDH Kopargaon)",
+    department: "Health & Medical Services",
+    phone: "+91-94211-10800",
+    emergency_phone: "108",
+    email: "sdh.kopargaon.health@maharashtra.gov.in",
+    zone_id: "all-taluka",
+    hazard_responsibility: "all",
+    status: "on_duty",
+    login_username: "health.kopargaon",
+    login_password: "health@108",
+    role: "concerned_authority",
+    access_level: "department_head",
+    notify_channels: { sms: true, whatsapp: true, voice_call: true, email: true, central_broadcast: true },
+    notes: "Coordinates 108 emergency ambulances, trauma triage, anti-snake venom kits & chlorine purification tablets.",
+    created_at: "2026-08-01T00:00:00.000Z",
+    updated_at: "2026-08-01T00:00:00.000Z"
+  },
+  {
+    id: "auth-tahsil-1",
+    name: "Shri. Sandeep Thorat",
+    designation: "Tahsildar & Taluka Relief Executive",
+    department: "Administration & Revenue",
+    phone: "+91-94233-10772",
+    emergency_phone: "02423-222244",
+    email: "tahsildar.kopargaon@maharashtra.gov.in",
+    zone_id: "all-taluka",
+    hazard_responsibility: "all",
+    status: "on_duty",
+    login_username: "tahsildar.kopargaon",
+    login_password: "tahsil@123",
+    role: "concerned_authority",
+    access_level: "sub_admin",
+    notify_channels: { sms: true, whatsapp: true, voice_call: true, email: true, central_broadcast: true },
+    notes: "Operates 24x7 Taluka Control Room, dispatches food supply packets & coordinates relief shelter admissions.",
+    created_at: "2026-08-01T00:00:00.000Z",
+    updated_at: "2026-08-01T00:00:00.000Z"
+  },
+  {
+    id: "auth-agri-1",
+    name: "Shri. Ashok Gaikwad",
+    designation: "Taluka Agriculture Officer (Krishi Adhikari)",
+    department: "Agriculture & Krishi",
+    phone: "+91-98600-22255",
+    emergency_phone: "02423-222555",
+    email: "tao.kopargaon.agri@maharashtra.gov.in",
+    zone_id: "zone-rural-north",
+    hazard_responsibility: "unseasonal",
+    status: "on_duty",
+    login_username: "agri.kopargaon",
+    login_password: "agri@2026",
+    role: "concerned_authority",
+    access_level: "operational_field",
+    notify_channels: { sms: true, whatsapp: true, voice_call: true, email: true, central_broadcast: true },
+    notes: "Conducts crop damage panchnama, hailstorm advisories & drought soil conservation programs.",
+    created_at: "2026-08-01T00:00:00.000Z",
+    updated_at: "2026-08-01T00:00:00.000Z"
+  },
+  {
+    id: "auth-power-1",
+    name: "Er. Mahendra Deshmukh",
+    designation: "Deputy Executive Engineer (MSEDCL)",
+    department: "MSEDCL & Power Grid",
+    phone: "+91-98500-19120",
+    emergency_phone: "1912",
+    email: "dyee.kopargaon@mahadiscom.in",
+    zone_id: "zone-bet",
+    hazard_responsibility: "flood",
+    status: "on_duty",
+    login_username: "power.kopargaon",
+    login_password: "msedcl@1912",
+    role: "concerned_authority",
+    access_level: "operational_field",
+    notify_channels: { sms: true, whatsapp: true, voice_call: true, email: true, central_broadcast: true },
+    notes: "De-energizes flood-prone 11kV substations along river banks to prevent electrocution hazards.",
+    created_at: "2026-08-01T00:00:00.000Z",
+    updated_at: "2026-08-01T00:00:00.000Z"
+  }
+];
+
+const LOCAL_DISPATCH_LOGS = [
+  {
+    id: "disp-init-101",
+    disaster_hazard: "flood",
+    severity: "HIGH",
+    zone_id: "zone-bet",
+    trigger_event: "Godavari river gauge reached 492.30m with upstream discharge 42,500 cfs",
+    target_authorities: [
+      {
+        authority_id: "auth-sdm-1",
+        name: "Dr. Rajesh Shinde (IAS)",
+        designation: "Sub-Divisional Magistrate (SDM)",
+        department: "Administration & Revenue",
+        phone: "+91-94220-10771",
+        channels: ["SMS", "WhatsApp", "Voice IVR"],
+        status: "action_taken",
+        action_note: "Activated Tehsil Control Cell and Somaiya Hall relief center.",
+        action_timestamp: new Date(Date.now() - 3400000).toISOString()
+      },
+      {
+        authority_id: "auth-wrd-1",
+        name: "Er. Pravin Sonawane",
+        designation: "Executive Engineer WRD",
+        department: "Water Resources & Irrigation",
+        phone: "+91-98501-44552",
+        channels: ["SMS", "WhatsApp"],
+        status: "action_taken",
+        action_note: "Telemetry bridge station linked with Gangapur Dam engineers.",
+        action_timestamp: new Date(Date.now() - 3200000).toISOString()
+      },
+      {
+        authority_id: "auth-fire-1",
+        name: "Shri. Nilesh Pawar",
+        designation: "Chief Fire Officer",
+        department: "Fire Brigade & Water Rescue",
+        phone: "+91-98233-10101",
+        channels: ["SMS", "Voice IVR"],
+        status: "action_taken",
+        action_note: "Deployed 2 motorized swift-water rescue boats at Bet Kopargaon riverbank.",
+        action_timestamp: new Date(Date.now() - 3000000).toISOString()
+      }
+    ],
+    message_sent: "HIGH FLOOD ADVISORY: Upstream discharge 42,500 cfs. Initiate stage II flood response along Bet Kopargaon low-lying banks.",
+    channels: ["SMS Gateway", "WhatsApp Enterprise", "Voice Call IVR", "FCM Mobile"],
+    sent_at: new Date(Date.now() - 3600000).toISOString(),
+    initiated_by: "System Telemetry Automation Engine"
+  }
+];
+
+const LOCAL_AUTHORITY_ACTIONS = [
+  {
+    id: "act-init-1",
+    dispatch_id: "disp-init-101",
+    authority_id: "auth-wrd-1",
+    authority_name: "Er. Pravin Sonawane",
+    designation: "Executive Engineer WRD",
+    department: "Water Resources & Irrigation",
+    phone: "+91-98501-44552",
+    hazard: "flood",
+    zone_id: "zone-bet",
+    action_title: "Er. Pravin Sonawane stationed 24x7 hydro-gauging team at Godavari Old Bridge; continuous discharge telemetry linked with Gangapur & Darna dam engineers.",
+    action_title_mr: "गोदावरी जुन्या पुलावर २४ तास जलमापक पथक तैनात केले व गंगापूर धरणातील विसर्गावर थेट देखरेख सुरू ठेवली.",
+    status: "action_taken",
+    timestamp: new Date(Date.now() - 3200000).toISOString()
+  },
+  {
+    id: "act-init-2",
+    dispatch_id: "disp-init-101",
+    authority_id: "auth-fire-1",
+    authority_name: "Shri. Nilesh Pawar",
+    designation: "Chief Fire Officer",
+    department: "Fire Brigade & Water Rescue",
+    phone: "+91-98233-10101",
+    hazard: "flood",
+    zone_id: "zone-bet",
+    action_title: "Shri. Nilesh Pawar launched 2 motorized swift-water rescue boats with certified divers and lifejackets at Bet Kopargaon riverbank.",
+    action_title_mr: "तातडीने आपत्कालीन बचाव बोटी, जीवरक्षक व जलतरण पथक बेट कोपरगाव घाटावर रवाना केले.",
+    status: "action_taken",
+    timestamp: new Date(Date.now() - 3000000).toISOString()
+  },
+  {
+    id: "act-init-3",
+    dispatch_id: "disp-init-101",
+    authority_id: "auth-sdm-1",
+    authority_name: "Dr. Rajesh Shinde (IAS)",
+    designation: "Sub-Divisional Magistrate (SDM)",
+    department: "Administration & Revenue",
+    phone: "+91-94220-10771",
+    hazard: "flood",
+    zone_id: "zone-bet",
+    action_title: "Dr. Rajesh Shinde opened Tehsil Disaster Control Cell, activated Somaiya Hall evacuation shelter, and coordinated emergency food packet supplies.",
+    action_title_mr: "आपत्ती नियंत्रण कक्ष सक्रिय करून सोमय्या हॉल निवारा केंद्र सुरू केले व अन्नधान्य साठा तैनात केला.",
+    status: "action_taken",
+    timestamp: new Date(Date.now() - 3400000).toISOString()
+  }
+];
+
 const DEFAULT_SHELTERS = [
   {
     id: 'shelter-sanjivani',
@@ -832,6 +1092,207 @@ app.post(['/api/v1/alerts/broadcast', '/api/alerts/broadcast'], requireAuthority
 // Admin toggle read-only mode
 app.post(['/api/v1/admin/toggle-read-only', '/api/admin/toggle-read-only'], requireAuthority, (req, res) => {
   res.json({ success: true, read_only: false });
+});
+
+// --- AUTHORITIES ROSTER & PORTAL ENDPOINTS ---
+
+// 1. Get all authorities
+app.get(['/api/v1/authorities', '/api/authorities'], (req, res) => {
+  res.json({ success: true, count: LOCAL_AUTHORITY_ROSTER.length, authorities: LOCAL_AUTHORITY_ROSTER });
+});
+
+// 2. Add new authority
+app.post(['/api/v1/authorities', '/api/authorities'], (req, res) => {
+  const data = req.body || {};
+  const newAuth = {
+    id: `auth-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    name: data.name || 'Nodal Officer',
+    designation: data.designation || 'Officer',
+    department: data.department || 'Administration & Revenue',
+    phone: data.phone || '',
+    emergency_phone: data.emergency_phone || '',
+    email: data.email || '',
+    zone_id: data.zone_id || 'all-taluka',
+    hazard_responsibility: data.hazard_responsibility || 'all',
+    status: data.status || 'on_duty',
+    login_username: data.login_username || '',
+    login_password: data.login_password || '',
+    role: data.role || 'concerned_authority',
+    access_level: data.access_level || 'operational_field',
+    notify_channels: data.notify_channels || { sms: true, whatsapp: true, voice_call: true, email: true, central_broadcast: true },
+    notes: data.notes || '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  LOCAL_AUTHORITY_ROSTER.unshift(newAuth);
+  res.status(201).json({ success: true, authority: newAuth });
+});
+
+// 3. Update authority
+app.put(['/api/v1/authorities/:id', '/api/authorities/:id'], (req, res) => {
+  const id = req.params.id;
+  const data = req.body || {};
+  const index = LOCAL_AUTHORITY_ROSTER.findIndex(a => a.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Authority not found' });
+  }
+
+  LOCAL_AUTHORITY_ROSTER[index] = {
+    ...LOCAL_AUTHORITY_ROSTER[index],
+    ...data,
+    updated_at: new Date().toISOString()
+  };
+
+  res.json({ success: true, authority: LOCAL_AUTHORITY_ROSTER[index] });
+});
+
+// 4. Delete authority
+app.delete(['/api/v1/authorities/:id', '/api/authorities/:id'], (req, res) => {
+  const id = req.params.id;
+  const index = LOCAL_AUTHORITY_ROSTER.findIndex(a => a.id === id);
+  if (index !== -1) {
+    LOCAL_AUTHORITY_ROSTER.splice(index, 1);
+  }
+  res.json({ success: true, message: 'Authority deleted' });
+});
+
+// 5. Concerned Authority Portal Login
+app.post(['/api/v1/auth/concerned-login', '/api/auth/concerned-login'], (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+
+  const normUser = username.trim().toLowerCase();
+  const authUser = LOCAL_AUTHORITY_ROSTER.find(a => 
+    (a.login_username && a.login_username.toLowerCase() === normUser) ||
+    (a.email && a.email.toLowerCase() === normUser) ||
+    (a.phone && a.phone.replace(/[^0-9]/g, '') === normUser.replace(/[^0-9]/g, ''))
+  );
+
+  if (!authUser || authUser.login_password !== password.trim()) {
+    return res.status(401).json({ error: 'Invalid department credentials or password' });
+  }
+
+  const token = jwt.sign({ 
+    id: authUser.id, 
+    role: authUser.role || 'concerned_authority', 
+    name: authUser.name, 
+    department: authUser.department,
+    designation: authUser.designation,
+    hazard_responsibility: authUser.hazard_responsibility,
+    zone_id: authUser.zone_id
+  }, JWT_SECRET, { expiresIn: '48h' });
+
+  res.json({
+    success: true,
+    token,
+    authority: authUser
+  });
+});
+
+// 6. Notify Concerned Authorities & Trigger Disaster Dispatch
+app.post(['/api/v1/authorities/notify-concerned', '/api/authorities/notify-concerned'], (req, res) => {
+  const { hazard, severity, zone_id, trigger_event, custom_message, channels } = req.body || {};
+  
+  const relevantAuthorities = LOCAL_AUTHORITY_ROSTER.filter(a => {
+    const matchZone = a.zone_id === 'all-taluka' || !zone_id || a.zone_id === zone_id;
+    const matchHazard = a.hazard_responsibility === 'all' || !hazard || a.hazard_responsibility === hazard;
+    return matchZone && matchHazard;
+  });
+
+  const selectedAuthorities = relevantAuthorities.length > 0 ? relevantAuthorities : LOCAL_AUTHORITY_ROSTER;
+
+  const target_authorities = selectedAuthorities.map(a => ({
+    authority_id: a.id,
+    name: a.name,
+    designation: a.designation,
+    department: a.department,
+    phone: a.phone,
+    channels: channels || ['SMS', 'WhatsApp', 'Voice IVR'],
+    status: 'action_taken',
+    action_note: `${a.name} (${a.designation}) deployed departmental emergency unit for ${hazard || 'disaster'} response.`,
+    action_timestamp: new Date().toISOString()
+  }));
+
+  const dispatchLog = {
+    id: `disp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    disaster_hazard: hazard || 'flood',
+    severity: severity || 'HIGH',
+    zone_id: zone_id || 'all-taluka',
+    trigger_event: trigger_event || 'Incident telemetry escalation',
+    target_authorities,
+    message_sent: custom_message || `CRITICAL ${severity || 'HIGH'} ALERT: ${hazard || 'Hazard'} in ${zone_id || 'Taluka'}. Initiate SOPs.`,
+    channels: channels || ['SMS Gateway', 'WhatsApp Enterprise', 'Voice Call IVR', 'Central Broadcast'],
+    sent_at: new Date().toISOString(),
+    initiated_by: 'Control Room Incident Commander'
+  };
+
+  LOCAL_DISPATCH_LOGS.unshift(dispatchLog);
+
+  // Also update live authority action items
+  selectedAuthorities.forEach(a => {
+    LOCAL_AUTHORITY_ACTIONS.unshift({
+      id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+      dispatch_id: dispatchLog.id,
+      authority_id: a.id,
+      authority_name: a.name,
+      designation: a.designation,
+      department: a.department,
+      phone: a.phone,
+      hazard: hazard || 'flood',
+      zone_id: zone_id || 'all-taluka',
+      action_title: `${a.name} (${a.designation}) activated field unit for ${hazard || 'emergency'} response.`,
+      action_title_mr: `${a.name} (${a.designation}) यांनी तात्काळ आपत्कालीन पथक तैनात केले.`,
+      status: 'action_taken',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  res.json({
+    success: true,
+    dispatch: dispatchLog,
+    message: `Dispatched high-priority emergency notifications to ${target_authorities.length} nodal department officers.`
+  });
+});
+
+// 7. Central Broadcast Dispatch
+app.post(['/api/v1/alerts/central-broadcast', '/api/alerts/central-broadcast'], (req, res) => {
+  const { zone_id, hazard, severity, message_en, message_mr, siren_activated, cell_broadcast, push_notification } = req.body || {};
+
+  const alertRecord = {
+    id: `central-alert-${Date.now()}`,
+    zone_id: zone_id || 'all-taluka',
+    hazard: hazard || 'flood',
+    severity: severity || 'HIGH',
+    message_en: message_en || `Emergency ${hazard} broadcast for ${zone_id}`,
+    message_mr: message_mr || `आपत्कालीन संदेश: ${zone_id} भागासाठी सतर्कतेचा इशारा`,
+    published: true,
+    siren_activated: !!siren_activated,
+    cell_broadcast: !!cell_broadcast,
+    push_notification: !!push_notification,
+    created_at: new Date().toISOString()
+  };
+
+  LOCAL_ALERTS.unshift(alertRecord);
+
+  res.json({
+    success: true,
+    broadcast_id: `bcast-${Date.now()}`,
+    alert: alertRecord,
+    message: 'Central public broadcast successfully dispatched across selected emergency sirens, cell broadcasts, and app push channels.'
+  });
+});
+
+// 8. Dispatch logs
+app.get(['/api/v1/authorities/dispatch-logs', '/api/authorities/dispatch-logs'], (req, res) => {
+  res.json({ success: true, count: LOCAL_DISPATCH_LOGS.length, logs: LOCAL_DISPATCH_LOGS });
+});
+
+// 9. Live Authority Action Feed
+app.get(['/api/v1/authorities/live-actions', '/api/authorities/live-actions'], (req, res) => {
+  res.json({ success: true, count: LOCAL_AUTHORITY_ACTIONS.length, actions: LOCAL_AUTHORITY_ACTIONS.slice(0, 30) });
 });
 
 // Fallback 404 handler for API routes
