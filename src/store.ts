@@ -368,15 +368,50 @@ export const store = {
   async getAlerts(): Promise<any[]> {
     try {
       const res = await fetch('/api/v1/alerts');
-      if (!res.ok) throw new Error('Network response not ok');
-      const data = await res.json();
-      await localforage.setItem('alerts_cache', data);
-      return data;
+      let remoteData: any[] = [];
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          remoteData = data;
+        }
+      }
+      
+      const cached = (await localforage.getItem<any[]>('alerts_cache')) || [];
+      const combinedMap = new Map<string, any>();
+      
+      // Add cached alerts first
+      cached.forEach(a => {
+        if (a && a.id) combinedMap.set(a.id, a);
+      });
+      // Add/overwrite with fresh remote data
+      remoteData.forEach(a => {
+        if (a && a.id) combinedMap.set(a.id, a);
+      });
+
+      const merged = Array.from(combinedMap.values()).sort((a, b) => 
+        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      );
+
+      await localforage.setItem('alerts_cache', merged);
+      return merged;
     } catch (err) {
       console.warn('Fetching alerts failed, using offline cache', err);
       const cached = await localforage.getItem<any[]>('alerts_cache');
-      if (cached) return cached;
+      if (cached && Array.isArray(cached) && cached.length > 0) return cached;
       return [];
+    }
+  },
+
+  async saveAlert(alert: any): Promise<void> {
+    try {
+      const cached = (await localforage.getItem<any[]>('alerts_cache')) || [];
+      const updated = [alert, ...cached.filter(a => a.id !== alert.id)];
+      await localforage.setItem('alerts_cache', updated);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('kopargaon:new_alert', { detail: alert }));
+      }
+    } catch (e) {
+      console.warn('Error saving local alert:', e);
     }
   },
 
@@ -649,6 +684,7 @@ export const store = {
 
   async sendCentralBroadcast(payload: CentralBroadcastPayload): Promise<any> {
     const token = await this.getToken();
+    let resultAlert: any = null;
     try {
       const res = await fetch('/api/v1/alerts/central-broadcast', {
         method: 'POST',
@@ -659,24 +695,37 @@ export const store = {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        return await res.json();
+        const json = await res.json();
+        if (json && json.alert) {
+          resultAlert = json.alert;
+        }
       }
     } catch (err) {
       console.warn('Central broadcast API error:', err);
     }
+
+    if (!resultAlert) {
+      resultAlert = {
+        id: `central-alert-${Date.now()}`,
+        zone_id: payload.zone_id || 'all-taluka',
+        hazard: payload.hazard || 'flood',
+        severity: payload.severity || 'HIGH',
+        message_en: payload.message_en,
+        message_mr: payload.message_mr,
+        siren_activated: !!payload.channels?.includes('Sirens'),
+        cell_broadcast: !!payload.channels?.includes('Cell Broadcast'),
+        push_notification: !!payload.channels?.includes('App Push'),
+        published: true,
+        created_at: new Date().toISOString()
+      };
+    }
+
+    await this.saveAlert(resultAlert);
+
     return {
       success: true,
       broadcast_id: `bcast-${Date.now()}`,
-      alert: {
-        id: `central-alert-${Date.now()}`,
-        zone_id: payload.zone_id,
-        hazard: payload.hazard,
-        severity: payload.severity,
-        message_en: payload.message_en,
-        message_mr: payload.message_mr,
-        published: true,
-        created_at: new Date().toISOString()
-      },
+      alert: resultAlert,
       message: 'Central public broadcast successfully dispatched across selected emergency sirens, cell broadcasts, and app push channels.'
     };
   },

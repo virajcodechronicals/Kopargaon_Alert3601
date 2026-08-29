@@ -12,6 +12,7 @@ import { IncidentReportModal } from './components/IncidentReportModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { SOSBeaconModal } from './components/SOSBeaconModal';
 import { ConcernedAuthoritiesDirectory } from './components/ConcernedAuthoritiesDirectory';
+import { PersistentEmergencyBanner } from './components/PersistentEmergencyBanner';
 import { HazardType, RiskPrediction, Alert, Shelter, EmergencyContact, AuthorityContact } from './types';
 import { HAZARD_PALETTES, getHazardTonalStyle } from './components/HazardPalettes';
 
@@ -121,15 +122,40 @@ export default function App() {
         setIsOffline(true);
       }
     };
-fetchData();
-    const interval = setInterval(fetchData, 12000);
-    return () => clearInterval(interval);
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+
+    // Instant alert sync on local & cross-tab broadcasts
+    const handleLiveAlert = (e: CustomEvent<any>) => {
+      const incoming = e.detail;
+      if (incoming && incoming.id) {
+        setAlerts(prev => [incoming, ...prev.filter(a => a.id !== incoming.id)]);
+      }
+    };
+    window.addEventListener('kopargaon:new_alert' as any, handleLiveAlert);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('kopargaon:new_alert' as any, handleLiveAlert);
+    };
   }, []);
 
   const palette = HAZARD_PALETTES[activeHazard];
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[#f8fafc] text-slate-900 font-sans select-none isolate">
+      {/* Persistent Emergency Broadcast Banner (Stays permanently visible across tabs until acknowledged) */}
+      <PersistentEmergencyBanner
+        alerts={alerts}
+        lang={lang}
+        onNavigateToAlerts={() => setActiveTab('alerts')}
+        onNavigateToZone={(zoneId, hazard) => {
+          setActiveHazard(hazard);
+          setActiveTab('map');
+          const matchedZone = { id: zoneId, name: zoneId === 'zone-bet' ? 'Bet Kopargaon' : zoneId };
+          setSelectedZone(matchedZone);
+        }}
+      />
       {/* 1. Onboarding Flyover Modal (Skippable, Skip visible from frame 1) */}
       <AnimatePresence>
         {showOnboarding && (
