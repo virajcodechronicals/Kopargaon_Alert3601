@@ -7,6 +7,8 @@ import { store } from '../store';
 import { safeFetchJson } from '../utils/api';
 import { IncidentsManagementTab } from './IncidentsManagementTab';
 import { AuthoritiesManagementTab } from './AuthoritiesManagementTab';
+import { downloadCapXml, copyCapJson, CAPAlertData } from '../utils/capEngine';
+import { SpeechEngine } from '../utils/speech';
 
 type AuthorityTab = 'overview' | 'authorities' | 'flood' | 'drought' | 'heatwave' | 'unseasonal' | 'incidents' | 'alerts' | 'analytics';
 
@@ -50,6 +52,40 @@ export const AuthorityDashboard = () => {
     store.getAlerts().then(setAlerts).catch(() => {});
   }, []);
 
+  const constructCapPayload = (): CAPAlertData => ({
+    identifier: `CAP-KOP-${Date.now()}`,
+    sender: 'Kopargaon.DDMA.Ahilyanagar@maharashtra.gov.in',
+    sentTime: new Date().toISOString(),
+    status: 'Actual',
+    msgType: 'Alert',
+    scope: 'Public',
+    hazard: broadcastHazard,
+    severity: broadcastSeverity === 'CRITICAL' ? 'Extreme' : broadcastSeverity === 'HIGH' ? 'Severe' : broadcastSeverity === 'MODERATE' ? 'Moderate' : 'Minor',
+    urgency: broadcastSeverity === 'CRITICAL' || broadcastSeverity === 'HIGH' ? 'Immediate' : 'Expected',
+    certainty: 'Observed',
+    headlineEn: `[EMERGENCY BROADCAST] ${broadcastHazard.toUpperCase()} WARNING - KOPARGAON`,
+    descriptionEn: broadcastEn,
+    headlineMr: `[आपत्कालीन सूचना] ${broadcastHazard.toUpperCase()} इशारा - कोपरगाव`,
+    descriptionMr: broadcastMr,
+    instructionEn: 'Evacuate to nearest designated relief shelter immediately.',
+    instructionMr: 'तातडीने सुरक्षित स्थळी / सोमय्या हॉल निवाऱ्यामध्ये जा.',
+    areaDesc: 'Kopargaon Taluka, Godavari River Corridor & Low-Lying Wards'
+  });
+
+  const handleDownloadCapXml = () => {
+    downloadCapXml(constructCapPayload());
+    showToast('CAP v1.2 XML file downloaded successfully!');
+  };
+
+  const handleCopyCapJson = async () => {
+    try {
+      await copyCapJson(constructCapPayload());
+      showToast('NDMA SACHET CAP JSON schema copied to clipboard!');
+    } catch {
+      showToast('Copy failed.');
+    }
+  };
+
   const handleBroadcastSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -71,7 +107,31 @@ export const AuthorityDashboard = () => {
         throw new Error(res.error || 'Broadcast failed');
       }
 
-      showToast('CAP Alert broadcast dispatched across SMS, FCM & Sirens!');
+      // 1. Dispatch Web Push Local Notification
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+          new Notification(`KOPARGAON CAP ${broadcastSeverity} ALERT`, {
+            body: broadcastEn,
+            icon: '/icon.png'
+          });
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission().then(perm => {
+            if (perm === 'granted') {
+              new Notification(`KOPARGAON CAP ${broadcastSeverity} ALERT`, {
+                body: broadcastEn,
+                icon: '/icon.png'
+              });
+            }
+          });
+        }
+      }
+
+      // 2. Trigger Marathi TTS Audio Siren Broadcast
+      if (broadcastMr) {
+        SpeechEngine.speak(broadcastMr, 'mr');
+      }
+
+      showToast('CAP Alert broadcast dispatched across SMS, FCM, Sirens & Web Push!');
       setShowBroadcastModal(false);
       store.getAlerts().then(setAlerts);
     } catch (err: any) {
@@ -598,6 +658,29 @@ export const AuthorityDashboard = () => {
                     />
                     <span>Municipal Sirens</span>
                   </label>
+                </div>
+
+                {/* CAP Schema Export Bar */}
+                <div className="pt-2 border-t border-slate-200 flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-mono font-semibold text-slate-500">CAP v1.2 / NDMA SACHET:</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDownloadCapXml}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold font-mono border border-slate-300 flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm">download</span>
+                      <span>Download CAP XML</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCopyCapJson}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold font-mono border border-slate-300 flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm">content_copy</span>
+                      <span>Copy CAP JSON</span>
+                    </button>
+                  </div>
                 </div>
 
                 <button
