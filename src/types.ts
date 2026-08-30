@@ -6,6 +6,25 @@ export type HazardType = 'flood' | 'drought' | 'heatwave' | 'unseasonal';
 
 export type RiskLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
 
+export interface RumorItem {
+  id: string;
+  claimTitle: string;
+  claimText: string;
+  claimMarathi?: string;
+  verdict: 'Fake' | 'Misleading' | 'Verified';
+  category: 'Dam Discharge' | 'Bridge & Roads' | 'Weather' | 'Evacuation' | 'General';
+  officialClarification: string;
+  clarificationMarathi: string;
+  evidenceData?: string;
+  verifiedBy: string; // e.g., 'Tehsildar & Sub-Divisional Disaster Cell, Kopargaon'
+  timestamp: string;
+  reportedCount: number;
+  sharesCount: number;
+  status?: 'PENDING' | 'PUBLISHED' | 'REJECTED';
+  originLocation?: string;
+  screenshotUrl?: string;
+}
+
 export interface LiveTelemetry {
   source: string;
   coordinates: { lat: number; lng: number };

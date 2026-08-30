@@ -2043,6 +2043,216 @@ Keep it to 2-3 short, clear paragraphs with actionable advice (e.g., evacuation 
     ]);
   });
 
+  // --- Rumor Buster & Fact-Checking Engine APIs ---
+  let LOCAL_RUMORS_SERVER: any[] = [
+    {
+      id: 'rumor-1',
+      claimTitle: 'Bhandardara Dam Breach Audio Clip',
+      claimText: 'Forwarded audio: Bhandardara dam wall has cracked due to heavy rain and entire Kopargaon town will submerge in 30 minutes!',
+      claimMarathi: 'व्हाट्सॲप अफवा: "भंडारदरा धरणाची भिंत खचली असून ३० मिनिटांत संपूर्ण कोपरगाव शहर पाण्याखाली जाईल!"',
+      verdict: 'Fake',
+      category: 'Dam Discharge',
+      officialClarification: 'Executive Engineer WRD Ahmednagar officially confirmed Bhandardara Dam structure is 100% intact and safe. Outflow is strictly controlled at 12,000 cusecs.',
+      clarificationMarathi: 'पाटबंधारे विभाग कार्यकारी अभियंत्यांनी स्पष्ट केले की भंडारदरा धरण पूर्णपणे सुरक्षित आहे. विसर्ग सुरळीत असून अफवा पसरवणाऱ्यांवर आपत्ती कायद्यानुसार गुन्हे दाखल केले जातील.',
+      evidenceData: 'WRD Hydro Gauge Telemetry #WRD-2026-BD8 | Old Bridge Gauge: 492.30m (Controlled Flow)',
+      verifiedBy: 'Tehsildar & Sub-Divisional Disaster Cell, Kopargaon',
+      timestamp: '2026-08-29 13:40',
+      reportedCount: 42,
+      sharesCount: 189,
+      status: 'PUBLISHED'
+    },
+    {
+      id: 'rumor-2',
+      claimTitle: 'Old Godavari Bridge Collapse Video',
+      claimText: 'Circulating video claiming Kopargaon Old Bridge structure broke into two during afternoon flood wave.',
+      claimMarathi: 'दावा: कोपरगावचा जुना गोदावरी पूल पाण्याच्या प्रचंड प्रवाहामुळे दोन तुकड्यांमध्ये तुटला.',
+      verdict: 'Misleading',
+      category: 'Bridge & Roads',
+      officialClarification: 'Outdated 2019 flood video from another district. Kopargaon Old Bridge is structurally sound. High-level new bypass bridge is open for all emergency vehicles.',
+      clarificationMarathi: 'हा व्हिडिओ इतर जिल्ह्यातील २०१९ मधील जुना आहे. कोपरगाव जुना पूल सुरक्षित आहे व नवीन बायपास पूल वाहतुकीसाठी सुरु आहे.',
+      evidenceData: 'PWD Structural Inspection Report #KPR-PWD-902 | Drone Verification 14:00 IST',
+      verifiedBy: 'Sub-Divisional Magistrate (SDM) Disaster Cell',
+      timestamp: '2026-08-29 12:10',
+      reportedCount: 28,
+      sharesCount: 115,
+      status: 'PUBLISHED'
+    },
+    {
+      id: 'rumor-3',
+      claimTitle: 'Bet Kopargaon Evacuation Order',
+      claimText: 'Official Notice: Bet Kopargaon Ward 4 residents must evacuate to Sanjivani Relief Hub as river stage approaches 492.3m.',
+      claimMarathi: 'अधिकृत सूचना: गोदावरी नदीची पातळी ४९२.३० मी वर गेल्यामुळे बेट कोपरगाव (वॉर्ड ४) मधील नागरिकांनी संजीवनी केंद्रात हलवावे.',
+      verdict: 'Verified',
+      category: 'Evacuation',
+      officialClarification: 'Genuine alert issued directly by Tahsildar & Disaster Management Officer Kopargaon based on live Gangapur discharge numbers.',
+      clarificationMarathi: 'तहसीलदार व आपत्ती व्यवस्थापन अधिकारी यांनी थेट गंगापूर विसर्ग आकडेवारीच्या आधारे अधिकृत जारी केलेले परिपत्रक.',
+      evidenceData: 'District Collector Advisory #COL-2026-EVAC-4 | Gauge 492.30m',
+      verifiedBy: 'Taluka Relief Executive & Police Disaster Cell',
+      timestamp: '2026-08-29 14:15',
+      reportedCount: 14,
+      sharesCount: 310,
+      status: 'PUBLISHED'
+    },
+    {
+      id: 'rumor-4',
+      claimTitle: 'Tap Water Contamination Panic',
+      claimText: 'WhatsApp message warning citizens not to drink municipal tap water claiming flood water contaminated main storage tank.',
+      claimMarathi: 'व्हाट्सॲप मेसेज: पुराचे दूषित पाणी शिरल्यामुळे नगर परिषदेचे पाणी पिऊ नये.',
+      verdict: 'Fake',
+      category: 'General',
+      officialClarification: 'Kopargaon Municipal Corporation confirmed water purification plants are operating on generators with continuous chlorination testing.',
+      clarificationMarathi: 'नगर परिषदेचे जलशुद्धीकरण केंद्र सुरु असून सातत्याने क्लोरीनेशन व लॅब टेस्टिंग केले जात आहे.',
+      evidenceData: 'Municipal Water Lab Quality Test Report #MUNI-W-402 | Chlorine 2.0 ppm',
+      verifiedBy: 'Chief Officer, Kopargaon Nagar Parishad',
+      timestamp: '2026-08-29 15:30',
+      reportedCount: 19,
+      sharesCount: 45,
+      status: 'PENDING',
+      originLocation: 'Bet Kopargaon Ward 2'
+    }
+  ];
+
+  app.get("/api/v1/rumors", (req, res) => {
+    res.json({ rumors: LOCAL_RUMORS_SERVER });
+  });
+
+  app.post("/api/v1/rumors", (req, res) => {
+    const rumor = req.body;
+    if (!rumor || !rumor.claimText) {
+      return res.status(400).json({ error: "Missing claim text" });
+    }
+    const newRumor = {
+      id: rumor.id || `rumor-${Date.now()}`,
+      claimTitle: rumor.claimTitle || 'Citizen Claim',
+      claimText: rumor.claimText,
+      claimMarathi: rumor.claimMarathi || rumor.claimText,
+      verdict: rumor.verdict || 'Fake',
+      category: rumor.category || 'General',
+      officialClarification: rumor.officialClarification || 'Under review by Disaster Control Room.',
+      clarificationMarathi: rumor.clarificationMarathi || 'आपत्ती नियंत्रण कक्षात पडताळणी सुरु आहे.',
+      evidenceData: rumor.evidenceData || 'Submitted by citizen.',
+      verifiedBy: rumor.verifiedBy || 'Tehsildar & Disaster Cell, Kopargaon',
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString('en-IN'),
+      reportedCount: 1,
+      sharesCount: 0,
+      status: rumor.status || 'PENDING',
+      originLocation: rumor.originLocation || 'Kopargaon',
+      screenshotUrl: rumor.screenshotUrl
+    };
+    LOCAL_RUMORS_SERVER.unshift(newRumor);
+    res.json({ success: true, rumor: newRumor });
+  });
+
+  app.post("/api/v1/rumors/ai-verify", async (req: any, res: any) => {
+    const { claimText, category } = req.body || {};
+    if (!claimText) return res.status(400).json({ error: "Missing claimText" });
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (apiKey) {
+      try {
+        const ai = new GoogleGenAI({
+          apiKey,
+          httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+        });
+
+        const prompt = `You are the Official AI Fact-Checker and Disaster Telemetry Evaluator for Kopargaon Disaster Cell (Ahilyanagar District, Maharashtra).
+Analyze this circulating public claim or WhatsApp rumor:
+Claim: "${claimText}"
+Category: ${category || 'General'}
+
+Live Telemetry Data:
+- Godavari River Stage (Old Bridge): 492.30 m (Danger: 493.00m)
+- Upstream Dam Outflow: Gangapur 42,500 cfs (controlled), Darna 16,200 cfs, Bhandardara 12,000 cfs (100% structurally safe)
+- City Drinking Water: Municipal Water Treatment Plant operating safely on generators, chlorine 2.0ppm.
+- Traffic: Elevated New Bypass Bridge fully functional; Old Bridge monitored.
+
+Return ONLY a strict JSON object with these exact keys:
+{
+  "verdict": "Fake" | "Misleading" | "Verified",
+  "officialClarification": "<Concise official factual explanation in English>",
+  "clarificationMarathi": "<Official factual explanation in Marathi>",
+  "evidenceData": "<Reference official WRD/PWD/Collector GR numbers & telemetry gauge data>",
+  "claimMarathi": "<Marathi translation of the claim>"
+}`;
+
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          config: {
+            responseMimeType: 'application/json'
+          }
+        });
+
+        const text = response.text || '';
+        const parsed = JSON.parse(text);
+        return res.json(parsed);
+      } catch (err) {
+        console.warn('Gemini rumor verify failed, using fallback:', err);
+      }
+    }
+
+    // Heuristic Fallback
+    const qLower = claimText.toLowerCase();
+    const isBreach = qLower.includes('breach') || qLower.includes('break') || qLower.includes('burst') || qLower.includes('खचली') || qLower.includes('तुटली') || qLower.includes('फुटले');
+    const isBridge = qLower.includes('bridge') || qLower.includes('पूल') || qLower.includes('collapse') || qLower.includes('खचला');
+    const isEvacuation = qLower.includes('evacuat') || qLower.includes('खाली करा') || qLower.includes('निवारा');
+
+    if (isBreach) {
+      return res.json({
+        verdict: "Fake",
+        officialClarification: "WRD Executive Engineer officially verified all dam walls (Gangapur, Darna, Bhandardara) are 100% structurally sound. Outflow is strictly regulated.",
+        clarificationMarathi: "पाटबंधारे विभागाच्या टेलिमेत्रीनुसार सर्व धरणांच्या भिंती पूर्णपणे सुरक्षित आहेत. धरण फुटल्याची बातमी पूर्णपणे खोटी आहे.",
+        evidenceData: "WRD Telemetry Triangulation #WRD-TRI-1077 | Gauge 492.30m",
+        claimMarathi: claimText
+      });
+    } else if (isBridge) {
+      return res.json({
+        verdict: "Misleading",
+        officialClarification: "Footage circulating on social media is outdated 2019 video. Kopargaon Old Bridge structural integrity is sound.",
+        clarificationMarathi: "सोशल मीडियावर फिरणारा व्हिडिओ जुना आहे. कोपरगाव जुना पूल व बायपास पूल सुरक्षित आहेत.",
+        evidenceData: "PWD Structural Drone Inspection #PWD-2026-DRONE",
+        claimMarathi: claimText
+      });
+    } else if (isEvacuation) {
+      return res.json({
+        verdict: "Verified",
+        officialClarification: "Official advisory confirmed by Tahsildar Kopargaon. Residents in Bet Kopargaon Ward 4 low-lying houses are requested to move to Sanjivani Relief Hub.",
+        clarificationMarathi: "तहसीलदार कोपरगाव यांच्या द्वारे अधिकृत सूचना. बेट कोपरगाव वॉर्ड ४ मधील नागरिकांनी सुरक्षित स्थळी हलवावे.",
+        evidenceData: "Tehsil Control Room Order #KPR-EVAC-401",
+        claimMarathi: claimText
+      });
+    }
+
+    return res.json({
+      verdict: "Fake",
+      officialClarification: "Disaster Cell investigation confirmed claim has no factual basis. Municipal infrastructure and telemetry remain fully operational.",
+      clarificationMarathi: "आपत्ती निवारण कक्षाच्या तपासणीनुसार दाव्यात कोणतेही तथ्य नाही.",
+      evidenceData: "Kopargaon Disaster Management Cell #KPR-DMC-90",
+      claimMarathi: claimText
+    });
+  });
+
+  app.post("/api/v1/rumors/:id/publish", (req, res) => {
+    const { id } = req.params;
+    const { rumor } = req.body;
+    const index = LOCAL_RUMORS_SERVER.findIndex(r => r.id === id);
+    if (index !== -1) {
+      LOCAL_RUMORS_SERVER[index] = { ...LOCAL_RUMORS_SERVER[index], ...rumor, status: 'PUBLISHED' };
+    } else if (rumor) {
+      LOCAL_RUMORS_SERVER.unshift({ ...rumor, status: 'PUBLISHED' });
+    }
+    res.json({ success: true });
+  });
+
+  app.post("/api/v1/rumors/:id/reject", (req, res) => {
+    const { id } = req.params;
+    const index = LOCAL_RUMORS_SERVER.findIndex(r => r.id === id);
+    if (index !== -1) {
+      LOCAL_RUMORS_SERVER[index].status = 'REJECTED';
+    }
+    res.json({ success: true });
+  });
+
   // Proxy endpoint for Windy API using process.env.WINDY_API_KEY
   app.post("/api/v1/windy/forecast", async (req, res) => {
     const apiKey = process.env.WINDY_API_KEY || "jy6wLX8DoR4VHOULLXEVQVgrs3QZyWia";

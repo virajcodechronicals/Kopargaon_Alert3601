@@ -7,14 +7,16 @@ import { store } from '../store';
 import { safeFetchJson } from '../utils/api';
 import { IncidentsManagementTab } from './IncidentsManagementTab';
 import { AuthoritiesManagementTab } from './AuthoritiesManagementTab';
+import { RumorBusterHub } from './RumorBusterHub';
 import { downloadCapXml, copyCapJson, CAPAlertData } from '../utils/capEngine';
 import { SpeechEngine } from '../utils/speech';
 
-type AuthorityTab = 'overview' | 'authorities' | 'flood' | 'drought' | 'heatwave' | 'unseasonal' | 'incidents' | 'alerts' | 'analytics';
+type AuthorityTab = 'overview' | 'authorities' | 'rumors' | 'flood' | 'drought' | 'heatwave' | 'unseasonal' | 'incidents' | 'alerts' | 'analytics';
 
 const TABS: { id: AuthorityTab; label: string; icon: string }[] = [
   { id: 'overview', label: 'Overview', icon: 'dashboard' },
   { id: 'authorities', label: 'Authorities & Dispatch', icon: 'shield_person' },
+  { id: 'rumors', label: 'Rumor Buster AI', icon: 'verified_user' },
   { id: 'flood', label: 'Flood', icon: 'water_drop' },
   { id: 'drought', label: 'Drought', icon: 'grass' },
   { id: 'heatwave', label: 'Heatwave', icon: 'thermostat' },
@@ -534,6 +536,13 @@ export const AuthorityDashboard = () => {
             <AuthoritiesManagementTab
               onShowToast={showToast}
               currentUser={user}
+            />
+          )}
+          {/* 7. Rumor Buster AI & Fact-Check Verification Queue Tab */}
+          {activeTab === 'rumors' && (
+            <RumorBusterHub
+              lang="en"
+              initialMode="authority"
             />
           )}
         </div>
