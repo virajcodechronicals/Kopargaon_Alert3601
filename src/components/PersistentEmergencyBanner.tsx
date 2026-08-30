@@ -19,6 +19,7 @@ export const PersistentEmergencyBanner: React.FC<PersistentEmergencyBannerProps>
 }) => {
   const [activeAlertIndex, setActiveAlertIndex] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isClosed, setIsClosed] = useState(false);
   const [acknowledgedIds, setAcknowledgedIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('kopargaon_acknowledged_alerts');
@@ -45,6 +46,7 @@ export const PersistentEmergencyBanner: React.FC<PersistentEmergencyBannerProps>
     const handleNewAlert = (e: CustomEvent<any>) => {
       const alertData = e.detail;
       if (alertData && alertData.id) {
+        setIsClosed(false);
         setIsMinimized(false);
         setHasNewUnseen(true);
         setActiveAlertIndex(0);
@@ -82,7 +84,7 @@ export const PersistentEmergencyBanner: React.FC<PersistentEmergencyBannerProps>
     }
   };
 
-  if (!currentAlert) return null;
+  if (isClosed || !currentAlert) return null;
 
   const isCurrentAcknowledged = acknowledgedIds.includes(currentAlert.id);
   const palette = HAZARD_PALETTES[currentAlert.hazard] || HAZARD_PALETTES.flood;
@@ -135,7 +137,7 @@ export const PersistentEmergencyBanner: React.FC<PersistentEmergencyBannerProps>
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className="flex justify-center pointer-events-auto"
+            className="flex justify-center items-center gap-1 pointer-events-auto"
             style={{
               width: '300px',
               paddingLeft: '3px',
@@ -152,7 +154,7 @@ export const PersistentEmergencyBanner: React.FC<PersistentEmergencyBannerProps>
                 paddingLeft: '7px',
                 marginLeft: '198px',
                 marginTop: '26px',
-                marginRight: '-76px',
+                marginRight: '0px',
                 width: '202.892px',
                 height: '32.8125px'
               }}
@@ -197,6 +199,20 @@ export const PersistentEmergencyBanner: React.FC<PersistentEmergencyBannerProps>
               >
                 {lang === 'mr' ? 'उघडा' : 'Expand'}
               </span>
+            </button>
+
+            <button
+              onClick={() => setIsClosed(true)}
+              style={{
+                marginTop: '26px',
+                width: '32.8125px',
+                height: '32.8125px'
+              }}
+              className="rounded-2xl bg-slate-900/90 hover:bg-rose-900/90 text-white border border-slate-700 shadow-xl backdrop-blur-md flex items-center justify-center transition-colors shrink-0"
+              title={lang === 'mr' ? 'बंद करा' : 'Close'}
+              aria-label="Close alert indicator"
+            >
+              <span className="material-symbols-outlined text-sm">close</span>
             </button>
           </motion.div>
         ) : (
@@ -263,6 +279,15 @@ export const PersistentEmergencyBanner: React.FC<PersistentEmergencyBannerProps>
                 >
                   <span className="material-symbols-outlined text-sm">expand_less</span>
                   <span>{lang === 'mr' ? 'लपवा' : 'Minimize'}</span>
+                </button>
+
+                <button
+                  onClick={() => setIsClosed(true)}
+                  className="w-6 h-6 rounded hover:bg-white/20 text-white flex items-center justify-center transition-colors ml-0.5"
+                  title={lang === 'mr' ? 'बंद करा' : 'Close'}
+                  aria-label="Close Banner"
+                >
+                  <span className="material-symbols-outlined text-base">close</span>
                 </button>
               </div>
             </div>

@@ -821,7 +821,7 @@ Return a valid JSON object ONLY with:
 }`;
 
     const geminiRes = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });
@@ -861,7 +861,7 @@ Hazard reported: ${hazard || 'flood'}. Note: ${note || 'Field observation'}.
 Evaluate flood depth / structure damage / crop loss. Provide a concise bilingual evaluation (English & Marathi).`;
 
     const geminiRes = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       contents: [
         { inlineData: { mimeType: 'image/jpeg', data: base64Data } },
         { text: prompt }
