@@ -10,10 +10,15 @@ import { safeFetchJson } from '../utils/api';
 export const ConcernedAuthorityPortal: React.FC = () => {
   const { user, logout } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'domain-actions' | 'submit-action' | 'dispatches' | 'actions-feed'>('domain-actions');
+  const [activeTab, setActiveTab] = useState<'incidents' | 'domain-actions' | 'submit-action' | 'dispatches' | 'actions-feed'>('incidents');
   const [dispatchLogs, setDispatchLogs] = useState<DisasterDispatchLog[]>([]);
   const [liveActions, setLiveActions] = useState<AuthorityActionItem[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [incidents, setIncidents] = useState<any[]>([]);
+  const [replyingIncidentId, setReplyingIncidentId] = useState<string | null>(null);
+  const [replyNote, setReplyNote] = useState<string>('');
+  const [replying, setReplying] = useState<boolean>(false);
+  const [now, setNow] = useState<number>(Date.now());
   const [loading, setLoading] = useState<boolean>(true);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -53,10 +58,11 @@ export const ConcernedAuthorityPortal: React.FC = () => {
 
   const loadPortalData = async () => {
     try {
-      const [logsRes, actionsRes, alertsRes] = await Promise.all([
+      const [logsRes, actionsRes, alertsRes, incRes] = await Promise.all([
         safeFetchJson('/api/v1/authorities/dispatch-logs'),
         safeFetchJson('/api/v1/authorities/live-actions'),
-        store.getAlerts()
+        store.getAlerts(),
+        safeFetchJson('/api/v1/admin/incidents')
       ]);
 
       if (logsRes.ok && logsRes.data?.logs) {
@@ -68,6 +74,9 @@ export const ConcernedAuthorityPortal: React.FC = () => {
       if (alertsRes) {
         setAlerts(alertsRes);
       }
+      if (incRes.ok && incRes.data?.incidents) {
+        setIncidents(incRes.data.incidents);
+      }
     } catch (e) {
       console.error('Error loading concerned authority portal data:', e);
     } finally {
@@ -77,9 +86,44 @@ export const ConcernedAuthorityPortal: React.FC = () => {
 
   useEffect(() => {
     loadPortalData();
-    const interval = setInterval(loadPortalData, 10000);
+    const interval = setInterval(() => {
+      setNow(Date.now());
+      loadPortalData();
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleIncidentReply = async (incidentId: string) => {
+    if (!replyNote.trim()) {
+      showToast('Please enter an action note or field update before sending.');
+      return;
+    }
+    setReplying(true);
+    try {
+      const token = await store.getToken();
+      const res = await safeFetchJson(`/api/v1/incidents/${incidentId}/reply`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: JSON.stringify({
+          action_note: replyNote,
+          status_action: 'verify'
+        })
+      });
+
+      if (res.ok) {
+        showToast('✅ Acknowledged & Replied! 2-Minute SLA satisfied. Control room updated.');
+        setReplyingIncidentId(null);
+        setReplyNote('');
+        loadPortalData();
+      } else {
+        showToast(res.error || 'Failed to submit reply');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to submit reply');
+    } finally {
+      setReplying(false);
+    }
+  };
 
   // Filter domain templates based on tab selection
   const filteredTemplates = DOMAIN_ACTION_TEMPLATES.filter(tmpl => {
@@ -313,6 +357,23 @@ export const ConcernedAuthorityPortal: React.FC = () => {
         {/* Portal Navigation Tabs */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex border-t border-slate-800/80 gap-1 overflow-x-auto no-scrollbar">
           <button
+            onClick={() => setActiveTab('incidents')}
+            className={`flex items-center gap-2 py-3 px-4 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
+              activeTab === 'incidents'
+                ? 'border-amber-500 text-amber-400 bg-amber-500/10'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span className="material-symbols-outlined text-base text-amber-400 animate-pulse">timer</span>
+            <span>Assigned Incidents (2-Min SLA)</span>
+            {incidents.filter(i => !i.authority_replied).length > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-slate-950">
+                {incidents.filter(i => !i.authority_replied).length} Active
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveTab('domain-actions')}
             className={`flex items-center gap-2 py-3 px-4 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
               activeTab === 'domain-actions'
@@ -386,6 +447,205 @@ export const ConcernedAuthorityPortal: React.FC = () => {
             </p>
           </div>
         </div>
+
+        {/* TAB 0: ASSIGNED CITIZEN INCIDENTS (2-MIN SLA) */}
+        {activeTab === 'incidents' && (
+          <div className="flex flex-col gap-6">
+            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-amber-500 text-2xl">emergency_home</span>
+                  <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
+                    Assigned Citizen Reports & 2-Minute SLA Tracker
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-600 font-medium mt-1">
+                  Reports are dispatched immediately to concerned departmental officers. You have <strong>2 minutes</strong> to reply. If unreplied, messages automatically escalate to <strong>Higher Authority (Admin SDM at Pargaon HQ)</strong>.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 self-start md:self-auto">
+                <span className="px-3 py-1.5 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-mono font-bold flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-sm text-amber-700 animate-spin">timer</span>
+                  <span>SLA Limit: 120 Seconds (2 Mins)</span>
+                </span>
+                <button
+                  onClick={loadPortalData}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-mono font-bold text-slate-700 border border-slate-300 flex items-center gap-1 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">refresh</span>
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+
+            {incidents.length === 0 ? (
+              <div className="p-10 text-center bg-white rounded-3xl border border-slate-200 shadow-sm">
+                <span className="material-symbols-outlined text-4xl text-emerald-500 mb-2">check_circle</span>
+                <h3 className="text-sm font-extrabold text-slate-800">No Citizen Reports Pending</h3>
+                <p className="text-xs text-slate-500 mt-1">All dispatched incident reports have been answered within SLA.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {incidents.map(inc => {
+                  const palette = HAZARD_PALETTES[inc.hazard] || HAZARD_PALETTES.flood;
+                  const elapsedSec = Math.floor((now - new Date(inc.created_at).getTime()) / 1000);
+                  const remainingSec = Math.max(0, (inc.sla_seconds || 120) - elapsedSec);
+                  const isSlaBreached = !inc.authority_replied && (elapsedSec >= (inc.sla_seconds || 120) || inc.status === 'ESCALATED_TO_SDM_PARGAON');
+
+                  const minsLeft = Math.floor(remainingSec / 60);
+                  const secsLeft = remainingSec % 60;
+
+                  return (
+                    <div
+                      key={inc.id}
+                      className={`rounded-3xl border p-5 flex flex-col justify-between transition-all bg-white shadow-sm ${
+                        isSlaBreached
+                          ? 'border-rose-300 ring-2 ring-rose-200 bg-rose-50/40'
+                          : inc.authority_replied
+                          ? 'border-emerald-200 bg-emerald-50/30'
+                          : 'border-amber-200 ring-1 ring-amber-100'
+                      }`}
+                    >
+                      <div>
+                        {/* Header Status Bar */}
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <span
+                            className="px-2.5 py-1 rounded-xl text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1 shadow-xs"
+                            style={{ backgroundColor: palette.tone90, color: palette.tone30 }}
+                          >
+                            <span className="material-symbols-outlined text-sm">{palette.symbol}</span>
+                            {inc.hazard}
+                          </span>
+
+                          {inc.authority_replied ? (
+                            <span className="px-3 py-1 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-mono font-extrabold flex items-center gap-1">
+                              <span className="material-symbols-outlined text-xs text-emerald-700">task_alt</span>
+                              <span>REPLIED (SLA MET)</span>
+                            </span>
+                          ) : isSlaBreached ? (
+                            <span className="px-3 py-1 rounded-xl bg-rose-600 text-white text-[10px] font-mono font-extrabold uppercase flex items-center gap-1 animate-pulse shadow-sm">
+                              <span className="material-symbols-outlined text-xs">local_police</span>
+                              <span>ESCALATED TO SDM PARGAON HQ</span>
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 rounded-xl bg-amber-100 text-amber-950 border border-amber-300 text-[10px] font-mono font-extrabold flex items-center gap-1">
+                              <span className="material-symbols-outlined text-xs text-amber-700 animate-spin">timer</span>
+                              <span>SLA: {minsLeft}m {secsLeft < 10 ? `0${secsLeft}` : secsLeft}s</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Description */}
+                        <h3 className="text-sm font-extrabold text-slate-900 leading-snug">
+                          "{inc.description}"
+                        </h3>
+
+                        {inc.photo_url && (
+                          <div className="mt-3 mb-3 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 max-h-36 flex items-center justify-center">
+                            <img src={inc.photo_url} alt="Incident" className="object-cover w-full h-full" />
+                          </div>
+                        )}
+
+                        {/* Assigned Routing Info */}
+                        <div className="mt-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 font-medium">Concerned Authority:</span>
+                            <span className="font-bold text-slate-900">
+                              {inc.assigned_authority?.name || officerName}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 font-medium">Department:</span>
+                            <span className="font-mono font-bold text-slate-800 text-[11px]">
+                              {inc.assigned_authority?.department || officerDept}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 font-medium">Higher Authority Fallback:</span>
+                            <span className="font-bold text-rose-700 text-[11px] font-mono">
+                              Admin SDM at Pargaon HQ
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 text-[11px] text-slate-600 font-mono pt-1 border-t border-slate-200/60">
+                            <span className="material-symbols-outlined text-xs text-slate-400">location_on</span>
+                            <span>GPS: {typeof inc?.latitude === 'number' ? inc.latitude.toFixed(4) : '19.8880'}, {typeof inc?.longitude === 'number' ? inc.longitude.toFixed(4) : '74.4750'}</span>
+                          </div>
+                        </div>
+
+                        {/* SLA Breach Notice Banner */}
+                        {isSlaBreached && !inc.authority_replied && (
+                          <div className="mt-3 p-3 rounded-2xl bg-rose-100 border border-rose-300 text-xs text-rose-950 font-medium leading-relaxed">
+                            <div className="font-bold flex items-center gap-1 text-rose-900 mb-0.5">
+                              <span className="material-symbols-outlined text-sm text-rose-700">warning</span>
+                              <span>2-Minute Response Time Exceeded</span>
+                            </div>
+                            This incident was not replied to within 2 minutes. It has been passed to <strong>Higher Authority (Admin SDM at Pargaon HQ)</strong> for emergency intervention. You can still submit a field response below.
+                          </div>
+                        )}
+
+                        {/* Submitted Reply Note */}
+                        {inc.authority_replied && inc.reply_note && (
+                          <div className="mt-3 p-3 rounded-2xl bg-emerald-100/80 border border-emerald-300 text-xs text-emerald-950 leading-relaxed">
+                            <div className="font-extrabold text-emerald-900 flex items-center gap-1 mb-0.5">
+                              <span className="material-symbols-outlined text-sm text-emerald-700">check_circle</span>
+                              <span>Officer Field Response Logged ({inc.replied_by || officerName}):</span>
+                            </div>
+                            "{inc.reply_note}"
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Reply Form / Action Button */}
+                      {!inc.authority_replied && (
+                        <div className="mt-4 pt-3 border-t border-slate-200">
+                          {replyingIncidentId === inc.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={replyNote}
+                                onChange={e => setReplyNote(e.target.value)}
+                                placeholder="Enter operational update e.g., 'Rescue boat & team dispatched to Bet Kopargaon Ward 4. Field officer en route.'"
+                                rows={2}
+                                className="w-full text-xs p-3 rounded-2xl border border-slate-300 bg-slate-50 focus:bg-white focus:border-amber-500 outline-none resize-none font-sans"
+                              />
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => setReplyingIncidentId(null)}
+                                  className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  disabled={replying}
+                                  onClick={() => handleIncidentReply(inc.id)}
+                                  className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs shadow-sm transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                >
+                                  <span className="material-symbols-outlined text-sm">send</span>
+                                  <span>{replying ? 'Sending...' : 'Submit Reply & Satisfy SLA'}</span>
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setReplyingIncidentId(inc.id);
+                                setReplyNote(`Acknowledged by ${officerName} (${officerDept}). Field unit dispatched.`);
+                              }}
+                              className="w-full py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5"
+                            >
+                              <span className="material-symbols-outlined text-base">quick_reply</span>
+                              <span>Acknowledge & Send Operational Reply</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* TAB 1: DOMAIN ACTIONS HUB (1-Click Deployment) */}
         {activeTab === 'domain-actions' && (

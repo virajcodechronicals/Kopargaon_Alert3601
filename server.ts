@@ -698,7 +698,130 @@ interface LocalAuthorityUser {
 
 const LOCAL_CITIZENS: Map<string, LocalCitizenUser> = new Map();
 const LOCAL_AUTHORITIES: Map<string, LocalAuthorityUser> = new Map();
-const LOCAL_INCIDENTS: any[] = [];
+const LOCAL_INCIDENTS: any[] = [
+  {
+    id: `inc-seed-1`,
+    reporter_id: `citizen-bet-101`,
+    hazard: `flood`,
+    description: `Water entering low-lying houses near Old Bridge Ghat in Bet Kopargaon Ward 4. Immediate rescue boat & sandbags required.`,
+    location: `POINT(74.4812 19.8860)`,
+    latitude: 19.8860,
+    longitude: 74.4812,
+    photo_url: `https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=600&q=80`,
+    ai_severity_score: 0.88,
+    status: 'pending_authority_reply',
+    created_at: new Date(Date.now() - 30000).toISOString(), // 30 seconds ago
+    assigned_authority: {
+      id: "auth-wrd-1",
+      name: "Er. Pravin Sonawane",
+      designation: "Executive Engineer (WRD Irrigation)",
+      department: "Water Resources & Irrigation",
+      phone: "+91-98501-44552"
+    },
+    assigned_desk: "Water Resources & Irrigation (Er. Pravin Sonawane)",
+    higher_authority: "Sub-Divisional Magistrate (SDM), Pargaon HQ",
+    sla_seconds: 120, // 2 minutes SLA
+    authority_replied: false,
+    escalated_to_sdm: false
+  },
+  {
+    id: `inc-seed-2`,
+    reporter_id: `farmer-kolpewadi-55`,
+    hazard: `unseasonal`,
+    description: `Severe hailstorm & high winds damaged onion crops and disrupted high-tension 11kV lines near Kolpewadi Phata.`,
+    location: `POINT(74.4410 19.8650)`,
+    latitude: 19.8650,
+    longitude: 74.4410,
+    photo_url: null,
+    ai_severity_score: 0.72,
+    status: 'ESCALATED_TO_SDM_PARGAON',
+    created_at: new Date(Date.now() - 150000).toISOString(), // 2.5 minutes ago (SLA breached)
+    assigned_authority: {
+      id: "auth-tahsil-1",
+      name: "Shri. Sandeep Thorat",
+      designation: "Tahsildar & Executive Magistrate",
+      department: "Administration & Revenue",
+      phone: "+91-98230-22233"
+    },
+    assigned_desk: "HIGHER_AUTHORITY: Admin SDM at Pargaon HQ",
+    higher_authority: "Sub-Divisional Magistrate (SDM), Pargaon HQ",
+    sla_seconds: 120,
+    authority_replied: false,
+    sla_breached: true,
+    escalated_to_sdm: true,
+    escalated_at: new Date(Date.now() - 30000).toISOString(),
+    escalation_reason: "No response from concerned authority within 2-minute SLA. Automatically escalated to Admin SDM at Pargaon HQ."
+  }
+];
+
+function getConcernedAuthorityForHazard(hazard: string) {
+  if (hazard === 'flood') {
+    const wrd = LOCAL_AUTHORITY_ROSTER.find(a => a.department.includes('Water') || a.department.includes('Irrigation'));
+    if (wrd) return { id: wrd.id, name: wrd.name, designation: wrd.designation, department: wrd.department, phone: wrd.phone };
+  }
+  if (hazard === 'drought') {
+    const tahsil = LOCAL_AUTHORITY_ROSTER.find(a => a.department.includes('Revenue') || a.department.includes('Administration'));
+    if (tahsil) return { id: tahsil.id, name: tahsil.name, designation: tahsil.designation, department: tahsil.department, phone: tahsil.phone };
+  }
+  if (hazard === 'heatwave') {
+    const health = LOCAL_AUTHORITY_ROSTER.find(a => a.department.includes('Health') || a.department.includes('Medical'));
+    if (health) return { id: health.id, name: health.name, designation: health.designation, department: health.department, phone: health.phone };
+  }
+  if (hazard === 'unseasonal') {
+    const agri = LOCAL_AUTHORITY_ROSTER.find(a => a.department.includes('Agriculture') || a.department.includes('Krishi') || a.department.includes('Revenue'));
+    if (agri) return { id: agri.id, name: agri.name, designation: agri.designation, department: agri.department, phone: agri.phone };
+  }
+  
+  const defaultAuth = LOCAL_AUTHORITY_ROSTER.find(a => a.role === 'concerned_authority') || LOCAL_AUTHORITY_ROSTER[1] || LOCAL_AUTHORITY_ROSTER[0];
+  return { id: defaultAuth.id, name: defaultAuth.name, designation: defaultAuth.designation, department: defaultAuth.department, phone: defaultAuth.phone };
+}
+
+// Background 2-Minute SLA Auto-Escalation Loop to Higher Authority (Admin SDM at Pargaon HQ)
+setInterval(() => {
+  const nowMs = Date.now();
+  for (const inc of LOCAL_INCIDENTS) {
+    if (!inc.authority_replied && inc.status !== 'verified' && inc.status !== 'rejected' && inc.status !== 'ESCALATED_TO_SDM_PARGAON' && inc.status !== 'ESCALATED_TO_MAIN_ADMIN') {
+      const createdAtMs = new Date(inc.created_at).getTime();
+      const elapsedSec = Math.floor((nowMs - createdAtMs) / 1000);
+      const slaThreshold = inc.sla_seconds || 120; // 2 minutes = 120 seconds
+
+      if (elapsedSec >= slaThreshold) {
+        inc.status = 'ESCALATED_TO_SDM_PARGAON';
+        inc.sla_breached = true;
+        inc.escalated_to_sdm = true;
+        inc.escalated_at = new Date().toISOString();
+        inc.assigned_desk = 'HIGHER_AUTHORITY: Admin SDM at Pargaon HQ';
+        inc.escalation_reason = `No reply from concerned authority (${inc.assigned_authority?.name || 'Assigned Officer'}) within 2 minutes SLA. Passed to Higher Authority (Admin SDM at Pargaon HQ).`;
+
+        const shortId = inc.id.includes('-') ? inc.id.split('-')[1] : inc.id;
+        const alertMsgEn = `🚨 SLA EXPIRED (2 MIN): Incident #${shortId} (${inc.hazard?.toUpperCase()}) escalated to Higher Authority (Admin SDM at Pargaon HQ) due to no reply from concerned authority (${inc.assigned_authority?.name || 'Assigned Officer'}).`;
+        const alertMsgMr = `🚨 २ मिनिटांची मर्यादा संपली: घटना #${shortId} संबंधित अधिकाऱ्याकडून प्रतिसाद न मिळाल्याने उच्च अधिकारी (प्रशासन एसडीएम, पारगाव मुख्यालय) यांच्याकडे पाठवण्यात आली आहे.`;
+
+        // Check if alert already exists for this breach to avoid duplicating
+        const alertExists = LOCAL_ALERTS.some(a => a.id === `alert-sla-${inc.id}`);
+        if (!alertExists) {
+          LOCAL_ALERTS.unshift({
+            id: `alert-sla-${inc.id}`,
+            zone_id: 'all-taluka',
+            hazard: inc.hazard || 'flood',
+            severity: 'CRITICAL',
+            message_en: alertMsgEn,
+            message_mr: alertMsgMr,
+            published: true,
+            created_at: new Date().toISOString()
+          });
+        }
+
+        console.log(`\n======================================================`);
+        console.log(`🚨 [2-MIN SLA BREACH] INCIDENT ESCALATED TO SDM PARGAON HQ`);
+        console.log(`Incident ID: ${inc.id} | Hazard: ${inc.hazard}`);
+        console.log(`Concerned Authority: ${inc.assigned_authority?.name || 'Unassigned'} [NO REPLY WITHIN 2 MIN]`);
+        console.log(`Passed To Higher Authority: Admin SDM at Pargaon HQ`);
+        console.log(`======================================================\n`);
+      }
+    }
+  }
+}, 3000);
 const LOCAL_ALERTS: any[] = [
   {
     id: "alert-default-1",
@@ -2400,6 +2523,8 @@ Return ONLY a strict JSON object with these exact keys:
         console.log("AI Severity scoring fallback activated.");
       }
 
+      const assignedAuth = getConcernedAuthorityForHazard(data.hazard);
+
       const incident = {
         id: `inc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
         reporter_id: reporterId,
@@ -2410,11 +2535,32 @@ Return ONLY a strict JSON object with these exact keys:
         longitude: data.longitude,
         photo_url: data.photo_url || null,
         ai_severity_score: data.ai_severity_score !== undefined && data.ai_severity_score !== null ? data.ai_severity_score : (ai_severity_score || 0.6),
-        status: 'pending_verification',
-        created_at: new Date().toISOString()
+        status: 'pending_authority_reply',
+        created_at: new Date().toISOString(),
+        assigned_authority: assignedAuth,
+        assigned_desk: `${assignedAuth.department} (${assignedAuth.name})`,
+        higher_authority: "Sub-Divisional Magistrate (SDM), Pargaon HQ",
+        sla_seconds: 120, // 2 minutes SLA threshold
+        authority_replied: false,
+        escalated_to_sdm: false
       };
       
       LOCAL_INCIDENTS.unshift(incident);
+
+      // Create initial dispatch notification to concerned authority
+      try {
+        await notifyConcernedAuthoritiesCore({
+          hazard: incident.hazard,
+          severity: incident.ai_severity_score >= 0.8 ? 'CRITICAL' : 'HIGH',
+          zone_id: 'all-taluka',
+          trigger_event: `Citizen Incident Reported: ${incident.description.substring(0, 80)}`,
+          custom_message: `🚨 CONCERNED AUTHORITY DISPATCH: Incident reported for ${incident.hazard.toUpperCase()}. Assigned to ${assignedAuth.name} (${assignedAuth.department}). Reply SLA: 2 Minutes. Higher Authority fallback: Admin SDM at Pargaon HQ.`,
+          initiated_by: "Citizen Incident Reporting Channel",
+          channels: ["SMS", "WhatsApp", "FCM Push"]
+        });
+      } catch (err) {
+        console.warn("Initial dispatch error:", err);
+      }
 
       try {
         await getSupabase().from('incidents').insert(incident);
@@ -2422,7 +2568,7 @@ Return ONLY a strict JSON object with these exact keys:
         console.warn("Supabase incident insert fallback:", (sbErr as any)?.message);
       }
       
-      await auditLog('INCIDENT_REPORTED', reporterId, { incident_id: incident.id });
+      await auditLog('INCIDENT_REPORTED', reporterId, { incident_id: incident.id, assigned_authority: assignedAuth });
       res.status(201).json({ success: true, incident });
     } catch (e: any) {
       if (e instanceof z.ZodError) {
@@ -2438,15 +2584,40 @@ Return ONLY a strict JSON object with these exact keys:
     res.json({ success: true, incidents: LOCAL_INCIDENTS });
   });
 
-  app.post("/api/v1/admin/incidents/:id/verify", authenticate, requireAuthority, async (req: any, res: any) => {
-    const { action } = req.body || {};
+  app.post("/api/v1/incidents/:id/reply", authenticate, requireAuthority, async (req: any, res: any) => {
+    const { action_note, status_action } = req.body || {};
     const incidentId = req.params.id;
     const incident = LOCAL_INCIDENTS.find(i => i.id === incidentId);
     if (!incident) return res.status(404).json({ error: "Incident not found" });
 
+    incident.authority_replied = true;
+    incident.replied_at = new Date().toISOString();
+    incident.replied_by = req.user?.name || req.user?.email || 'Concerned Authority Officer';
+    incident.reply_note = action_note || "Acknowledged by concerned authority & field unit dispatched.";
+    incident.status = status_action === 'reject' ? 'rejected' : 'verified';
+    incident.verified_at = new Date().toISOString();
+    incident.verified_by = req.user?.name || 'Concerned Authority';
+
+    await auditLog('INCIDENT_REPLIED_BY_AUTHORITY', req.user?.id || 'auth-user', {
+      incident_id: incident.id,
+      replied_by: incident.replied_by,
+      reply_note: incident.reply_note
+    });
+
+    res.json({ success: true, incident, message: "Reply recorded! 2-Minute SLA satisfied." });
+  });
+
+  app.post("/api/v1/admin/incidents/:id/verify", authenticate, requireAuthority, async (req: any, res: any) => {
+    const { action, reply_note } = req.body || {};
+    const incidentId = req.params.id;
+    const incident = LOCAL_INCIDENTS.find(i => i.id === incidentId);
+    if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+    incident.authority_replied = true;
     incident.status = action === 'reject' ? 'rejected' : 'verified';
     incident.verified_at = new Date().toISOString();
-    incident.verified_by = req.user?.id || 'admin';
+    incident.verified_by = req.user?.name || req.user?.id || 'SDM Admin (Pargaon HQ)';
+    incident.reply_note = reply_note || (action === 'reject' ? 'Report rejected after field verification.' : 'Verified & actioned by Disaster Control Cell.');
 
     // If verified, dispatch notification to concerned authorities
     if (incident.status === 'verified') {
