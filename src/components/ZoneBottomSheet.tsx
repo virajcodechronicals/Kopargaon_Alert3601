@@ -273,10 +273,13 @@ export const ZoneBottomSheet: React.FC<ZoneBottomSheetProps> = ({
             </button>
 
             <button
+              type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors"
+              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1.5 transition-colors shrink-0 shadow-xs"
+              aria-label="Close modal"
             >
-              <span className="material-symbols-outlined text-lg">close</span>
+              <span className="material-symbols-outlined text-base">close</span>
+              <span>{lang === 'mr' ? 'बंद करा' : 'Close'}</span>
             </button>
           </div>
         </div>

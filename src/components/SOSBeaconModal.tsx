@@ -160,8 +160,10 @@ Requesting immediate rescue dispatch to this location.`;
                 <span className="hidden sm:inline">{lang === 'mr' ? 'ऑडिओ' : 'Audio'}</span>
               </button>
               <button 
+                type="button"
                 onClick={onClose}
-                className="p-2 rounded-lg bg-red-800/40 hover:bg-red-800/80 text-white transition-colors"
+                className="rounded-full p-2 hover:bg-slate-100 transition-colors text-white hover:text-red-200 flex items-center justify-center shrink-0"
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>

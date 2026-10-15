@@ -87,10 +87,12 @@ Sincerely,
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-200/50 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
+            className="rounded-full p-2 hover:bg-slate-100 transition-colors text-slate-600 hover:text-slate-900 flex items-center justify-center shrink-0"
+            aria-label="Close modal"
           >
-            <span className="material-symbols-outlined text-sm">close</span>
+            <span className="material-symbols-outlined text-xl">close</span>
           </button>
         </div>
 

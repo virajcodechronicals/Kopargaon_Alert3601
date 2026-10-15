@@ -341,10 +341,13 @@ ${item.officialClarification}
 
             {onClose && (
               <button
+                type="button"
                 onClick={onClose}
-                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-colors ml-2"
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors border border-slate-700 ml-2 shrink-0 shadow-xs"
+                aria-label="Close modal"
               >
-                <span className="material-symbols-outlined text-lg">close</span>
+                <span className="material-symbols-outlined text-base">close</span>
+                <span>{lang === 'mr' ? 'बंद करा' : 'Close'}</span>
               </button>
             )}
           </div>
@@ -825,10 +828,13 @@ ${item.officialClarification}
                   </h4>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowSubmitModal(false)}
-                  className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center"
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors border border-slate-700 shrink-0"
+                  aria-label="Close modal"
                 >
-                  <span className="material-symbols-outlined text-sm">close</span>
+                  <span className="material-symbols-outlined text-base">close</span>
+                  <span>{lang === 'mr' ? 'बंद करा' : 'Close'}</span>
                 </button>
               </div>
 
@@ -978,10 +984,13 @@ ${item.officialClarification}
                   </h4>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowPublishModal(false)}
-                  className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center"
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors border border-slate-700 shrink-0"
+                  aria-label="Close modal"
                 >
-                  <span className="material-symbols-outlined text-sm">close</span>
+                  <span className="material-symbols-outlined text-base">close</span>
+                  <span>{lang === 'mr' ? 'बंद करा' : 'Close'}</span>
                 </button>
               </div>
 
